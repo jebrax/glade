@@ -50,6 +50,7 @@ class DynamicMeshGenerator
       second.set(a);
       second.subtract(c);
       first.cross(second, result);
+      result.normalize();
     }
 
     void addFaceNormalComponentToItsVertices(Glade::Mesh &mesh, int index1, int index2, int index3)
@@ -67,6 +68,7 @@ class DynamicMeshGenerator
       extractVertexNormalFromTheMesh(index2, mesh, normal2);
       extractVertexNormalFromTheMesh(index3, mesh, normal3);
 
+      // why add and not set?
       normal1.add(faceNormal);
       normal1.normalize();
       normal2.add(faceNormal);
@@ -104,8 +106,8 @@ class DynamicMeshGenerator
 
     float heightFunction4(float x, float y, float z)
     {
-      float freq = 0.2;
-      return 1.0 * perlin.octave3D_01((x * freq), (y * freq), (z * freq), 4);
+      float freq = 0.6;
+      return 1.0 * perlin.octave3D_01((x * freq), (y * freq), (z * freq), 8);
     }
 
     void generateHull(Glade::Mesh &mesh, float radius = 3.0, bool sphere = false)

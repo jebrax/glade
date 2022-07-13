@@ -27,6 +27,10 @@ public:
     int rhsDistSq = rhs.x * rhs.x + rhs.y * rhs.y;
     return lhsDistSq < rhsDistSq;
   }
+
+  bool operator==(const Vector2i &rhs) const {
+    return (x == rhs.x && y == rhs.y);
+  }
 };
 
 class Vector3i {
@@ -146,6 +150,20 @@ namespace std {
       size_t x2 = (std::hash<int>()(key.y) ^ x1) * m;
       size_t x3 = (std::hash<int>()(key.z) ^ x2) * m;
       return x3;
+    }
+  };
+
+  template <>
+  struct hash<Glade::Vector2i>
+  {
+    size_t operator()(const Glade::Vector2i& key) const
+    {
+      //using std::hash;
+      size_t m = 283945;
+      size_t x0 = 0x123456;
+      size_t x1 = (std::hash<int>()(key.x) ^ x0) * m;
+      size_t x2 = (std::hash<int>()(key.y) ^ x1) * m;
+      return x2;
     }
   };
 }

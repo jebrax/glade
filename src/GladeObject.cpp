@@ -44,7 +44,7 @@ Transform* GladeObject::getTransform(void)
 
 void GladeObject::addDrawable(Drawable* view)
 {
-  log("Adding drawable");
+//  log("Adding drawable");
   drawables.push_back(view);
   visibilitySwitches[view] = true;
 }

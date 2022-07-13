@@ -1,5 +1,5 @@
-libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o builddir
-	libtool -static -o build/glade/libglade.a ../../vendor/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o
+libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o builddir
+	libtool -static -o build/glade/libglade.a ../../vendor/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o
 
 ######################
 
@@ -44,6 +44,9 @@ CollisionDetector.o: builddir
 
 Perception.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/render/Perception.cpp -o build/glade/Perception.o
+
+MarchingCubesTables.o: builddir
+	clang -O0 -g -I include -DGLADE_MACOS -c src/render/meshes/MarchingCubesTables.cpp -o build/glade/MarchingCubesTables.o
 
 GladeRenderer.o: builddir
 	clang -O0 -g -I../../vendor/glew/include -I include -DGLADE_MACOS -DGL_SILENCE_DEPRECATION -c src/render/GladeRenderer.cpp -o build/glade/GladeRenderer.o

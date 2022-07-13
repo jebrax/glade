@@ -38,8 +38,9 @@ void Glade::Renderer::onSurfaceCreated()
   glCullFace(GL_BACK);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
-  //glEnable(GL_CULL_FACE);
+  glEnable(GL_CULL_FACE);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   //glProvokingVertex(GL_FIRST_VERTEX_CONVENTION);
   moveAllObjectsIntoVideoMemory();
   log("Initialized renderer");
@@ -318,8 +319,9 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Mesh> mesh)
       log("No mesh");
       return;
     }
-    if (mesh->hasVideoBufferHandle())
-      log("WARNING: Attempting to load mesh which already has a VBO handle, will reload it!");
+
+    //if (mesh->hasVideoBufferHandle())
+    //  log("WARNING: Attempting to load mesh which already has a VBO handle, will reload it!");
   }
 
   // Creating VBOs

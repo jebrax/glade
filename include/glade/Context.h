@@ -196,7 +196,7 @@ private:
    * Should not be called when containers are iterating
    */
   void addNow(GladeObject* object) {
-    log("Adding now");
+    //log("Adding now");
     renderer->add(object);
     simulator.add(object);
     collisionDetector.add(object);

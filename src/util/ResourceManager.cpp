@@ -59,6 +59,7 @@ std::shared_ptr<Glade::Mesh> Glade::ResourceManager::getMesh(const Path &filenam
 
   if (i != meshes.end()) {
     //return i->second;
+    return std::shared_ptr<Mesh>(i->second->clone());
   }
 
   std::shared_ptr<Mesh> mesh = loadMeshAssimp(filename);
@@ -216,7 +217,7 @@ std::shared_ptr<Glade::Mesh> Glade::ResourceManager::loadMeshAssimp(const Path &
   Assimp::Importer importer;
 
   Path filePath = ((DesktopFileManager*)fileManager)->getAbsolutePath(filename);
-  const aiScene* scene = importer.ReadFile(filePath.toString(), aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
+  const aiScene* scene = importer.ReadFile(filePath.toString(), aiProcess_Triangulate /*| aiProcess_JoinIdenticalVertices*/);
 
   if (nullptr == scene) {
     log("Failed to read Wavefront OBJ file with assimp from file %s: %s", filename.toString().c_str(), importer.GetErrorString());

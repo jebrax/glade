@@ -45,7 +45,15 @@ namespace Glade {
       }
       
       virtual void erase(void) {
-        log("FIXME: Not erasing mesh for no reason");
+        vertices.clear();
+        indices.clear();
+      }
+
+      Mesh* clone() {
+        Mesh *mesh = new Mesh();
+        mesh->vertices.assign(vertices.begin(), vertices.end());
+        mesh->indices.assign(indices.begin(), indices.end());
+        return mesh;
       }
     
       bool hasVideoBufferHandle()
