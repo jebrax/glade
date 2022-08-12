@@ -46,7 +46,7 @@ Perception.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/render/Perception.cpp -o build/glade/Perception.o
 
 MarchingCubesTables.o: builddir
-	clang -O0 -g -I include -DGLADE_MACOS -c src/render/meshes/MarchingCubesTables.cpp -o build/glade/MarchingCubesTables.o
+	clang -O0 -g -I include -DGLADE_MACOS -c src/generation/MarchingCubesTables.cpp -o build/glade/MarchingCubesTables.o
 
 GladeRenderer.o: builddir
 	clang -O0 -g -I../../vendor/glew/include -I include -DGLADE_MACOS -DGL_SILENCE_DEPRECATION -c src/render/GladeRenderer.cpp -o build/glade/GladeRenderer.o

@@ -103,6 +103,11 @@ public:
       x = y = z = 0.0f;
     }
   }
+
+  float sqDist(const Vector3f &other)
+  {
+    return (x * other.x + y * other.y + z * other.z); 
+  }
 };
 
 class Vector4f {

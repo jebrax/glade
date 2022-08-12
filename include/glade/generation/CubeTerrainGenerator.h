@@ -1,14 +1,17 @@
 #pragma once
 
+#include <glade/render/meshes/Mesh.h>
+#include <glade/generation/MarchingCubesTables.h>
+#include <glade/generation/Grid.h>
+
+#include <PerlinNoise/PerlinNoise.hpp>
+
 #include <cmath>
 #include <ctime>
 #include <algorithm>
 #include <unordered_map>
 
-#include "Mesh.h"
-#include <PerlinNoise/PerlinNoise.hpp>
-#include "MarchingCubesTables.h"
-#include "Grid.h"
+#define ONE_METER_COORDS 1
 
 class CubeTerrainGenerator
 {
@@ -43,12 +46,13 @@ class CubeTerrainGenerator
       return std::pow(noise,diminisher) * 10.0;
     }
 
-    float isosurfaceHeightMap(float x, float y, float z, float maxY)
+    float isosurfaceHeightMap(float x, float y, float z, float maxHeightMeters)
     {
       float wavelength = 20.0;
       int octaves = 6;
       float noise = perlin.octave2D_01(x / wavelength, z / wavelength, octaves);
       noise = std::pow(noise, 4.0);
+      float maxY = maxHeightMeters * ONE_METER_COORDS;
       noise *= maxY;
       return (y - noise + maxY) / (2 * maxY);
     }
@@ -113,6 +117,83 @@ class CubeTerrainGenerator
       result.normalize();
     }
 
+    void genIsoCube(Grid &grid, Glade::Mesh &mesh, float isolevel = 0.5, bool regenerate = true)
+    {
+      mesh.erase();
+      int index = 0;
+      
+      Glade::Vector3i cellIndex;
+
+      grid.setValueAtCell(cellIndex, 0);
+      auto i = grid.cells.find(cellIndex);
+      Grid::Cell &cell = i->second;
+
+      int cubeindex = 0;
+      if (cell.val[0] < isolevel) cubeindex |= 1;
+      if (cell.val[1] < isolevel) cubeindex |= 2;
+      if (cell.val[2] < isolevel) cubeindex |= 4;
+      if (cell.val[3] < isolevel) cubeindex |= 8;
+      if (cell.val[4] < isolevel) cubeindex |= 16;
+      if (cell.val[5] < isolevel) cubeindex |= 32;
+      if (cell.val[6] < isolevel) cubeindex |= 64;
+      if (cell.val[7] < isolevel) cubeindex |= 128;
+
+      Glade::Vector3f vertlist[12];
+
+      if (MarchingCubesTables::edgeTable[cubeindex] & 1)
+        vertlist[0] = VertexInterp(isolevel, cell.p[0], cell.p[1], cell.val[0], cell.val[1]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 2)
+        vertlist[1] = VertexInterp(isolevel, cell.p[1], cell.p[2], cell.val[1], cell.val[2]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 4)
+        vertlist[2] = VertexInterp(isolevel, cell.p[2], cell.p[3], cell.val[2], cell.val[3]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 8)
+        vertlist[3] = VertexInterp(isolevel, cell.p[3], cell.p[0], cell.val[3], cell.val[0]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 16)
+        vertlist[4] = VertexInterp(isolevel, cell.p[4], cell.p[5], cell.val[4], cell.val[5]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 32)
+        vertlist[5] = VertexInterp(isolevel, cell.p[5], cell.p[6], cell.val[5], cell.val[6]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 64)
+        vertlist[6] = VertexInterp(isolevel, cell.p[6], cell.p[7], cell.val[6], cell.val[7]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 128)
+        vertlist[7] = VertexInterp(isolevel, cell.p[7], cell.p[4], cell.val[7], cell.val[4]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 256)
+        vertlist[8] = VertexInterp(isolevel, cell.p[0], cell.p[4], cell.val[0], cell.val[4]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 512)
+        vertlist[9] = VertexInterp(isolevel, cell.p[1], cell.p[5], cell.val[1], cell.val[5]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 1024)
+        vertlist[10] = VertexInterp(isolevel, cell.p[2], cell.p[6], cell.val[2], cell.val[6]);
+      if (MarchingCubesTables::edgeTable[cubeindex] & 2048)
+        vertlist[11] = VertexInterp(isolevel, cell.p[3], cell.p[7], cell.val[3], cell.val[7]);
+
+      for (int i = 0; MarchingCubesTables::triTable[cubeindex][i] != -1; i += 3) {
+        Glade::Vector3f &v1 = vertlist[MarchingCubesTables::triTable[cubeindex][i + 0]];
+        Glade::Vector3f &v2 = vertlist[MarchingCubesTables::triTable[cubeindex][i + 1]];
+        Glade::Vector3f &v3 = vertlist[MarchingCubesTables::triTable[cubeindex][i + 2]];
+
+        Glade::Vector3f faceNormal;
+        faceNormalFromThreeVertices(v1, v2, v3, faceNormal);
+
+        for (int coordi = 0; coordi < 3; coordi++) {
+          // position
+          Glade::Vector3f &v = vertlist[MarchingCubesTables::triTable[cubeindex][i + coordi]];
+          mesh.vertices.push_back(v.x);
+          mesh.vertices.push_back(v.y);
+          mesh.vertices.push_back(v.z);
+
+          Glade::Vector3f normal;
+          mesh.vertices.push_back(faceNormal.x);
+          mesh.vertices.push_back(faceNormal.y);
+          mesh.vertices.push_back(faceNormal.z);
+
+          // tex coord
+          mesh.vertices.push_back(0.0);
+          mesh.vertices.push_back(0.0);
+
+          mesh.indices.push_back(index++);
+        }
+      }
+    }
+
     void mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel = 0.5, bool regenerate = true)
     {
       mesh.erase();
@@ -131,20 +212,13 @@ class CubeTerrainGenerator
             float x = i * grid.cellSize;
             float y = j * grid.cellSize;
             float z = k * grid.cellSize;
-            // Cube points (not the mesh vertices yet! mesh vertices are somewhere on the edges of the cube)
+            
             Glade::Vector3i cellIndex(ifirst + i, j, kfirst + k);
+            Glade::Vector3i cellIndexInsideChunk(i, j, k);
 
-            Grid::Cell newCell;
-            Grid::Cell &cell = regenerate ? newCell : grid.cells[cellIndex];
-
-            cell.p[0] = Glade::Vector3f(x, y, z);
-            cell.p[1] = Glade::Vector3f(x + grid.cellSize, y, z),
-            cell.p[2] = Glade::Vector3f(x + grid.cellSize, y, z + grid.cellSize),
-            cell.p[3] = Glade::Vector3f(x, y, z + grid.cellSize),
-            cell.p[4] = Glade::Vector3f(x, y + grid.cellSize, z),
-            cell.p[5] = Glade::Vector3f(x + grid.cellSize, y + grid.cellSize, z),
-            cell.p[6] = Glade::Vector3f(x + grid.cellSize, y + grid.cellSize, z + grid.cellSize),
-            cell.p[7] = Glade::Vector3f(x, y + grid.cellSize, z + grid.cellSize);
+            Grid::Cell newCell(cellIndexInsideChunk, grid.cellSize);
+            auto i = grid.cells.find(cellIndex);
+            Grid::Cell &cell = (regenerate || i == grid.cells.end()) ? newCell : i->second;
 
             if (regenerate) {
               for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
@@ -153,12 +227,13 @@ class CubeTerrainGenerator
                   cell.p[cubeVertNum].x + xstart,
                   cell.p[cubeVertNum].y,
                   cell.p[cubeVertNum].z + zstart,
-                  10
+                  20
                 );
                 //log("Noise value: %f", cell.val[cubeVertNum]);
               }
 
-              grid.cells[cellIndex] = cell;
+              // PROBLEM: Adjancent cell cube vertices probably do not have a corresponding value! Use grid.setValueAtCell() but check it's implementation first
+              grid.cells.insert_or_assign(cellIndex, cell);
             }
 
             int cubeindex = 0;

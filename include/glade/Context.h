@@ -122,13 +122,29 @@ public:
     
     if (!objectsToAdd.empty()) {
       log("Context: new objects will be loaded");
-      
+     
       while (!objectsToAdd.empty()) {
         addNow(objectsToAdd.front());
         objectsToAdd.pop();
       }
       
       gladeObjectsListsChanged = true;
+    }
+
+    if (getCurrentState() != NULL) {
+      if (enableSimulator)
+        getSimulator()->stepSimulation(timer.getDeltaTime());  
+
+      if (enableCollisionDetector)
+        getCollisionDetector()->detectCollisions(timer.getDeltaTime());
+
+      //if (enableAiContainer)
+        //getAiContainer()->process(getCurrentState());
+
+      getCurrentState()->applyRules(*this);
+
+      //if (enableSoundPlayer)
+        //getSoundPlayer()->process();
     }
   }
 

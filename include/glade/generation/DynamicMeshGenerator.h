@@ -1,9 +1,11 @@
 #pragma once
 
+#include <glade/render/meshes/Mesh.h>
+
+#include <PerlinNoise/PerlinNoise.hpp>
+
 #include <cmath>
 #include <ctime>
-#include "Mesh.h"
-#include <PerlinNoise/PerlinNoise.hpp>
 
 class DynamicMeshGenerator
 {
