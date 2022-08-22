@@ -1,4 +1,4 @@
-libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o builddir
+libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o assets builddir
 	libtool -static -o build/glade/libglade.a ../../vendor/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/MeshGenerator.o build/glade/AdvancedMeshGenerator.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o build/glade/Grid.o build/glade/noise.o
 
 ######################
@@ -70,6 +70,10 @@ GladeObject.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/GladeObject.cpp -o build/glade/GladeObject.o
 
 ######################
+
+assets: builddir
+	mkdir build/glade/assets
+	cp -R res/* build/glade/assets
 
 builddir: 
 	mkdir -p build
