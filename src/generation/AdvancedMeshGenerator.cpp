@@ -91,12 +91,14 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         if (regenerate) {
           for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
             //cell.val[cubeVertNum] = noise3D(cell.p[cubeVertNum].x * 0.04, cell.p[cubeVertNum].y * 0.04, cell.p[cubeVertNum].z * 0.04);
+
             cell.val[cubeVertNum] = isosurfaceHeightMap(
               cell.p[cubeVertNum].x + xstart,
               cell.p[cubeVertNum].y,
               cell.p[cubeVertNum].z + zstart,
               20
             );
+            //cell.val[cubeVertNum] = 0.6;
             //log("Noise value: %f", cell.val[cubeVertNum]);
           }
 
