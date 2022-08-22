@@ -72,7 +72,7 @@ GladeObject.o: builddir
 ######################
 
 assets: builddir
-	mkdir build/glade/assets
+	mkdir -p build/glade/assets
 	cp -R res/* build/glade/assets
 
 builddir: 
