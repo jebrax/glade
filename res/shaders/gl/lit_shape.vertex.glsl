@@ -1,3 +1,5 @@
+#version 410
+
 const float ZERO = 0.0, ONE = 1.0;
 
 uniform mat4    uProjectionMatrix;
@@ -13,11 +15,11 @@ uniform vec4    uMaterialDiffuse;
 uniform vec4    uMaterialSpecular;
 uniform float   uMaterialShininess;
 
-attribute vec4  aPosition;
-attribute vec3  aNormal;
-attribute vec2  aTexCoord0;
+in vec3  aPosition;
+in vec3  aNormal;
+in vec2  aTexCoord0;
 
-varying vec4    vColor;
+out vec4 vColor;
 
 vec4 calculateLight(vec3 normal, vec3 vertex_pos) {
   vec4 computedColor = vec4(ZERO, ZERO, ZERO, ZERO);
@@ -50,7 +52,7 @@ vec4 calculateLight(vec3 normal, vec3 vertex_pos) {
 }
 
 void main(void) {
-  vec4 finalVertexPosition = uWorldViewMatrix * aPosition;
+  vec4 finalVertexPosition = uWorldViewMatrix * vec4(aPosition, 1.0);
   gl_Position = uProjectionMatrix * finalVertexPosition;
 
   vec4 rotatedNormal = normalize(uWorldViewMatrix * vec4(aNormal.xyz, ZERO));
