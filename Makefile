@@ -1,7 +1,10 @@
-libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o assets builddir set-env
-	libtool -static -o build/glade/libglade.a ${VENDOR}/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/MeshGenerator.o build/glade/AdvancedMeshGenerator.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o build/glade/Grid.o build/glade/noise.o
+libglade.a: FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o lodepng.o assets builddir set-env
+	libtool -static -o build/glade/libglade.a build/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/MeshGenerator.o build/glade/AdvancedMeshGenerator.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o build/glade/Grid.o build/glade/noise.o
 
 ######################
+
+lodepng.o: builddir-lodepng
+	clang -O0 -g -c ${VENDOR}/lodepng/lodepng.cpp -o build/lodepng/lodepng.o
 
 FreetypeFont.o: builddir
 	clang -O0 -g -I ${VENDOR}/freetype-2.10.1/include -I include -DGLADE_MACOS -c src/ui/font/FreetypeFont.cpp -o build/glade/FreetypeFont.o
@@ -76,8 +79,10 @@ assets: builddir
 	cp -R res/* build/glade/assets
 
 builddir: 
-	mkdir -p build
 	mkdir -p build/glade
+
+builddir-lodepng:
+	mkdir -p build/lodepng
 
 clean:
 	rm -rf build
