@@ -7,7 +7,7 @@ lodepng.o: builddir-lodepng
 	clang -O0 -g -c ${VENDOR}/lodepng/lodepng.cpp -o build/lodepng/lodepng.o
 
 FreetypeFont.o: builddir
-	clang -O0 -g -I ${VENDOR}/freetype-2.10.1/include -I include -DGLADE_MACOS -c src/ui/font/FreetypeFont.cpp -o build/glade/FreetypeFont.o
+	clang -O0 -g -I ${VENDOR}/freetype/include -I include -DGLADE_MACOS -c src/ui/font/FreetypeFont.cpp -o build/glade/FreetypeFont.o
 
 Layout.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/ui/layout/Layout.cpp -o build/glade/Layout.o
@@ -34,7 +34,7 @@ CSVReader.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/util/CSVReader.cpp -o build/glade/CSVReader.o
 
 ResourceManager.o: builddir
-	clang -O0 -std=c++11 -g -I ${VENDOR}/assimp/include -I ${VENDOR}/freetype-2.10.1/include -I ${VENDOR}/lodepng -I include -DGLADE_MACOS -c src/util/ResourceManager.cpp -o build/glade/ResourceManager.o
+	clang -O0 -std=c++11 -g -I ${VENDOR}/assimp/include -I ${VENDOR}/freetype/include -I ${VENDOR}/lodepng -I include -DGLADE_MACOS -c src/util/ResourceManager.cpp -o build/glade/ResourceManager.o
 
 DesktopFileManager.o: builddir
 	clang -O0 -g -I include -DGLADE_MACOS -c src/util/DesktopFileManager.cpp -o build/glade/DesktopFileManager.o
