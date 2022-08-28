@@ -57,6 +57,20 @@ float isosurfaceHeightMap(float x, float y, float z, float maxHeightMeters)
   return (y - noise + maxY) / (2 * maxY);
 }
 
+float singleCube(float x, float y, float z, float cellSize, int chunkSizeCells)
+{
+  // TODO for many chunks
+  int cellX = (int) (x / cellSize);
+  int cellY = (int) (y / cellSize);
+  int cellZ = (int) (z / cellSize);
+
+  if (cellX == chunkSizeCells / 2 && cellY == 20 && cellZ == chunkSizeCells / 2) {
+    return 0.1;
+  } else {
+    return 0.8;
+  }
+}
+
 void perlinTest()
 {
   for (int x = 0; x < 5; x++) {

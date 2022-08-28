@@ -14,9 +14,15 @@ class Grid;
 class AdvancedMeshGenerator
 {
   public:
+    enum FunctionType {
+      ISOSURFACE_HEIGHTMAP,
+      ISOSURFACE_NOISE_3D,
+      CENTER_CELL_ONLY
+    };
+
     AdvancedMeshGenerator() {}
 
-    void mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel = 0.5, bool regenerate = true);
+    void mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel = 0.5, bool regenerate = true, FunctionType type = ISOSURFACE_HEIGHTMAP);
     // heightmap
     void generate(const std::function<void(Glade::Vector3i&, float, float, float, float)>& callback, int size);
 

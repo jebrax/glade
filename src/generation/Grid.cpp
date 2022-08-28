@@ -101,7 +101,7 @@ void Grid::setValueAtCell(const Glade::Vector3i &centralCellIndex, float value, 
           int cubeVertIndex = (*cubeVertIndices)[cube_vert_index];
 
           if (cubeVertIndex >= 0)
-            addValueAtCubeVertex(cellIndex, cubeVertIndex, value);
+            setValueAtCubeVertex(cellIndex, cubeVertIndex, value);
 
           continue;
         }
@@ -112,7 +112,7 @@ void Grid::setValueAtCell(const Glade::Vector3i &centralCellIndex, float value, 
           if (cubeVertIndex == -1)
             continue;
 
-          addValueAtCubeVertex(cellIndex, cubeVertIndex, value);
+          setValueAtCubeVertex(cellIndex, cubeVertIndex, value);
         }
       }
     }
