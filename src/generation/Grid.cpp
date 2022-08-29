@@ -136,38 +136,6 @@ void Grid::getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::
   p[7].y += cellSize; p[7].z += cellSize;
 }
 
-void Grid::addValueAtCellPerCubeVertex(const Glade::Vector3i &centralCellIndex, const Glade::Vector3f &hit_point, float adder)
-{
-  Glade::Vector3f cubeVertexPositions[8];
-  getCubeVertexWorldPositions(centralCellIndex, cubeVertexPositions); // Test?
-
-  typedef struct {
-    float distance;
-    int cubeVertIndex;
-  } CubeVertWithDistance;
-
-  CubeVertWithDistance cubeVerts[8];
-
-  for (int i = 0; i < 8; i++) {
-    cubeVerts[i].distance = cubeVertexPositions[i].sqDist(hit_point);
-    cubeVerts[i].cubeVertIndex = i;
-  }
-
-  std::sort(std::begin(cubeVerts), std::end(cubeVerts), [] (const CubeVertWithDistance &a, CubeVertWithDistance &b) {
-      return a.distance > b.distance;
-  });
-
-  for (int i = 0; i < 8; i++) {
-    float digFactor;
-    if (adder > 0)
-      digFactor = cubeVerts[7].distance / cubeVerts[i].distance;
-    else
-      digFactor = cubeVerts[0].distance / cubeVerts[i].distance;
-
-    addValueAtCell(centralCellIndex, adder * digFactor, cubeVerts[i].cubeVertIndex);
-  }
-}
-
 std::pair<Glade::Vector2i, Glade::Vector3i> Grid::getCellIndexByCoords(const Glade::Vector3f &coords) const
 {
   int ichunk = coords.x / chunkSizeCoords;

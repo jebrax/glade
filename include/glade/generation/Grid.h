@@ -40,7 +40,6 @@ struct Grid
   void addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index = -1);
   void setValueAtCell(const Glade::Vector3i &centralCellIndex, float value, int cube_vert_index = -1);
   void getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::Vector3f p[]);
-  void addValueAtCellPerCubeVertex(const Glade::Vector3i &centralCellIndex, const Glade::Vector3f &hit_point, float adder);
   std::pair<Glade::Vector2i, Glade::Vector3i> getCellIndexByCoords(const Glade::Vector3f &coords) const;
   void getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result);
 
