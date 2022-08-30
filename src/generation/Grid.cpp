@@ -182,3 +182,33 @@ void Grid::getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade
   if (chunkxmod && chunkymod)
     result.push_back(Glade::Vector2i(ichunk + chunkxmod, jchunk + chunkymod));
 }
+
+int Grid::coordToCellCoord(float coord) const
+{
+  return (int) (coord / cellSize);
+}
+
+Glade::Vector3i Grid::getCellForPoint(const Glade::Vector3f &point) const
+{
+  return Glade::Vector3i(coordToCellCoord(point.x), coordToCellCoord(point.y), coordToCellCoord(point.z));
+}
+
+bool Grid::doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord)
+{
+  std::vector<float> shift = { -cellSize / 2, cellSize / 2 };
+
+  for (float xshift: shift) {
+    for (float yshift: shift) {
+      for (float zshift: shift) {
+        Glade::Vector3f checkingPoint(x + xshift, y + yshift, z + zshift);
+        Glade::Vector3i checkingCellCoord = getCellForPoint(checkingPoint);
+        if (checkingCellCoord == cellCoord) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+

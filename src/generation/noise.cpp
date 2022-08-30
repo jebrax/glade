@@ -1,4 +1,5 @@
 #include <glade/generation/noise.h>
+#include <glade/generation/Grid.h>
 #include <glade/debug/log.h>
 
 #include <PerlinNoise/PerlinNoise.hpp>
@@ -57,14 +58,11 @@ float isosurfaceHeightMap(float x, float y, float z, float maxHeightMeters)
   return (y - noise + maxY) / (2 * maxY);
 }
 
-float singleCube(float x, float y, float z, float cellSize, int chunkSizeCells)
+float singleCube(float x, float y, float z, Grid &grid)
 {
-  // TODO for many chunks
-  int cellX = (int) (x / cellSize);
-  int cellY = (int) (y / cellSize);
-  int cellZ = (int) (z / cellSize);
+  Glade::Vector3i centerCellCoord(grid.chunkSizeCells / 2, 20, grid.chunkSizeCells / 2);
 
-  if (cellX == chunkSizeCells / 2 && cellY == 20 && cellZ == chunkSizeCells / 2) {
+  if (grid.doesCubeVertBelongInTheCell(x, y, z, centerCellCoord)) {
     return 0.1;
   } else {
     return 0.8;

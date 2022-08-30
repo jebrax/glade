@@ -42,6 +42,9 @@ struct Grid
   void getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::Vector3f p[]);
   std::pair<Glade::Vector2i, Glade::Vector3i> getCellIndexByCoords(const Glade::Vector3f &coords) const;
   void getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result);
+  bool doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord);
+  int coordToCellCoord(float coord) const;
+  Glade::Vector3i getCellForPoint(const Glade::Vector3f &point) const;
 
   typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
   typedef Cells::iterator CellsI;

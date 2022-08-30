@@ -107,8 +107,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
                   cell.p[cubeVertNum].x + xstart,
                   cell.p[cubeVertNum].y,
                   cell.p[cubeVertNum].z + zstart,
-                  grid.cellSize,
-                  grid.chunkSizeCells
+                  grid
                 );
                 break;
             }
