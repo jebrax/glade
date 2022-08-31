@@ -29,6 +29,40 @@ struct Grid
       p[7] = Glade::Vector3f(x, y + cellSize, z + cellSize);
     }
 
+    int getNumberOfPointsWithValueLessThan(float threshold)
+    {
+      int result = 0;
+
+      for (int i = 0; i < 8; i++) {
+        if (val[i] < threshold)
+          result++;
+      }
+
+      return result;
+    }
+
+    int getNumberOfPointsWithValueMoreThan(float threshold)
+    {
+      int result = 0;
+
+      for (int i = 0; i < 8; i++) {
+        if (val[i] > threshold)
+          result++;
+      }
+
+      return result;
+    }
+
+    float sumValues()
+    {
+      float result = 0;
+
+      for (int i = 0; i < 8; i++)
+        result += val[i];
+
+      return result;
+    }
+
     Glade::Vector3f p[8];
     float val[8];
   };
