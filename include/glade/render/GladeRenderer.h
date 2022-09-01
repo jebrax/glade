@@ -43,7 +43,7 @@ namespace Glade {
     GLuint program;
 
     // handles to shader uniforms
-    GLuint  uProjectionMatrix, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
+    GLuint  uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
         uSamplerNumber, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
 
     // handles to shader attributes
@@ -54,7 +54,7 @@ namespace Glade {
     float aspectRatio;
     ProjectionMode currentProjectionMode, sceneProjectionMode;
  
-    float projectionMatrix[16], viewMatrix[16], worldViewMatrix[16];
+    float projectionMatrix[16], viewMatrix[16], worldViewMatrix[16], cameraTransform[16];
     Glade::Vector3f backgroundColor;
  
     std::vector<GladeObject*> sceneObjects; // maybe set?

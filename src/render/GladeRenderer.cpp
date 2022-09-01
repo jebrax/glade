@@ -123,6 +123,7 @@ void Glade::Renderer::onDrawFrame(void)
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (getCamera()) {
+    getCamera()->getMatrix(cameraTransform);
     getCamera()->getCameraMatrix(viewMatrix);
     switchProjectionMode(sceneProjectionMode);
     drawAll(sceneObjects.begin(), sceneObjects.end());
@@ -508,6 +509,7 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
   glUniformMatrix4fv(uWorldMatrix, 1, GL_FALSE, worldMatrix);
   glUniformMatrix4fv(uProjectionMatrix, 1, GL_FALSE, projectionMatrix);
   glUniformMatrix4fv(uWorldViewMatrix, 1, GL_FALSE, worldViewMatrix);
+  glUniformMatrix4fv(uCameraTransform, 1, GL_FALSE, cameraTransform);
   glUniform3f(uCameraPosition, getCamera()->position->x, getCamera()->position->y, getCamera()->position->z);
   
   if (firstCycle) {
@@ -727,6 +729,7 @@ void Glade::Renderer::getShaderHandles(ShaderProgram &program)
   uProjectionMatrix   = glGetUniformLocation(program.gpuHandle, "uProjectionMatrix");
   uWorldViewMatrix  = glGetUniformLocation(program.gpuHandle, "uWorldViewMatrix");
   uWorldMatrix  = glGetUniformLocation(program.gpuHandle, "uWorldMatrix");
+  uCameraTransform = glGetUniformLocation(program.gpuHandle, "uCameraTransform");
   uCameraPosition = glGetUniformLocation(program.gpuHandle, "uCameraPosition");
 
   aPosition      = glGetAttribLocation(program.gpuHandle, "aPosition");

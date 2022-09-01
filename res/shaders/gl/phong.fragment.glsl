@@ -6,6 +6,7 @@ in vec2 vTexCoord0;
 
 out vec4 fragColor;
 
+uniform mat4 uCameraTransform;
 uniform vec3 uCameraPosition;
 
 vec3 objectColor = vec3(0.4, 0.1, 0.2);
@@ -18,11 +19,16 @@ float specularShininess = 64;
 
 void main(void)
 {
+  vec3 normal = normalize(vNormal);
+
+  // Temporarily stick the directional light to the camera
+  lightPosition = uCameraPosition;
+
   // Ambient
   vec3 ambient = ambientStrength * lightColor;
 
-  vec3 normal = normalize(vNormal);
-  vec3 lightDir = normalize(lightPosition - vFragPos);
+  vec3 lightDir = lightPosition - vFragPos;
+  lightDir = normalize(lightDir);
 
   // Diffuse
   float angleToLight = max(dot(normal, lightDir), 0.0);
