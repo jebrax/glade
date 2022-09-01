@@ -12,43 +12,43 @@
 #include "ai/AiContainer.h"
 #include "Timer.h"
 #include "debug/log.h"
-//#include "#audio/SoundPlayer.h"
 
 class Context {
 public:
   Timer timer;
   Glade::Renderer* renderer;
-  //SoundPlayer* soundPlayer;
 
   // these are instantiated here because there's only one implementation now
   Simulator simulator;
   CollisionDetector collisionDetector;
   AiContainer aiContainer;
 
-  bool enableSimulator, enableCollisionDetector, enableAiContainer, enableSoundPlayer;
+  bool enableSimulator, enableCollisionDetector, enableAiContainer;
 
 private:
-  std::unique_ptr<State> currentState, requestedState;
-  bool stopRequested, clearRequested;
+  State *currentState, *requestedState;
+  bool stopRequested, clearRequested, suspend;
   VirtualController* controller;
   std::queue<GladeObject*> objectsToAdd;
   std::queue<GladeObject*> objectsToRemove;
 
 public:
-  Context(Glade::Renderer* renderer/*, SoundPlayer* soundPlayer*/):
+  Context(Glade::Renderer* renderer):
     renderer(renderer),
-    //soundPlayer(soundPlayer),
     enableSimulator(true),
     enableCollisionDetector(true),
     enableAiContainer(true),
-    enableSoundPlayer(true),
     stopRequested(false),
-    clearRequested(false)
+    clearRequested(false),
+    suspend(false),
+    currentState(nullptr),
+    requestedState(nullptr)
   {
   }
 
-  void requestStateChange(std::unique_ptr<State> state) {
-    requestedState = std::move(state);
+  void requestStateChange(State* state, bool suspend = false) {
+    this->suspend = suspend;
+    requestedState = state;
   }
 
   void requestStop(void) {
@@ -64,7 +64,7 @@ public:
   }
 
   State* getCurrentState(void) {
-    return currentState.get();
+    return currentState;
   }
 
   Simulator* getSimulator(void) {
@@ -88,15 +88,16 @@ public:
       stopRequested = false;
       clearNowFully();
 
-      if (currentState.get() != nullptr) {
+      if (currentState != nullptr) {
         currentState->shutdown(*this);
-        currentState.reset();
+        delete currentState;
+        currentState = nullptr;
       }
 
       return;
     }
 
-    if (requestedState.get() != nullptr) {
+    if (requestedState != nullptr) {
       log("State switch requested");
       switchState();
 
@@ -142,19 +143,12 @@ public:
         //getAiContainer()->process(getCurrentState());
 
       getCurrentState()->applyRules(*this);
-
-      //if (enableSoundPlayer)
-        //getSoundPlayer()->process();
     }
   }
 
   Glade::Renderer* getRenderer(void) {
     return renderer;
   }
-
-/*  SoundPlayer* getSoundPlayer(void) {
-    return soundPlayer;
-  }*/
 
   void clear(void) {
     clearRequested = true;
@@ -173,25 +167,32 @@ private:
   /**
    * Should be called only from rendering thread
    */
-  void switchState(void) {
-    if (currentState.get() != nullptr) {
-      clearBeforeStateInit();
-      log("Shutting down current state");
-      currentState->shutdown(*this);
-      log("Current state was shut down");
+  void switchState(void) {  
+    clearNowFully();
 
-      if (requestedState.get() != nullptr) {
-        log("Initializing requested state");
-        currentState = std::move(requestedState);
-        currentState->init(*this);
+    if (currentState != nullptr) {
+      if (suspend) {
+        log("Suspending current state");
+        currentState->suspend(*this);
+        log("Current state was suspended");
+      } else {
+        log("Shutting down current state");
+        currentState->shutdown(*this);
+        delete currentState;
+        currentState = nullptr;
+        log("Current state was shut down");
       }
+    }
 
-      clearAfterStateInit();
-    } else {
-      clearNowFully();
+    if (requestedState != nullptr) {
+      currentState = requestedState;
+      requestedState = nullptr;
 
-      if (requestedState.get() != nullptr) {
-        currentState = std::move(requestedState);
+      if (currentState->isSuspended()) {
+        log("Waking up requested state");
+        currentState->wakeup(*this);
+      } else {
+        log("Initializing requested state");
         currentState->init(*this);
       }
     }
@@ -205,7 +206,6 @@ private:
     simulator.remove(object);
     collisionDetector.remove(object);
     //aiContainer->remove(object);
-    //soundPlayer->remove(object.getSounds());
   }
   
   /**
@@ -217,7 +217,6 @@ private:
     simulator.add(object);
     collisionDetector.add(object);
     //aiContainer->add(object);
-    //soundPlayer->hold(object.getSounds());
   }
 
   /**
@@ -227,34 +226,10 @@ private:
     log("Clearing fully");
 
     renderer->clear();
-    //soundPlayer->clear(true);
     simulator.clear();
     collisionDetector.clear();
     aiContainer.clear();
 
     clearRequested = false;
-  }
-
-  /**
-   * Should be called only from rendering thread. Invoke before state init to clear some resources
-   */
-  void clearBeforeStateInit(void) {
-    log("Clearing before state init");
-
-    renderer->clear();
-    simulator.clear();
-    collisionDetector.clear();
-    aiContainer.clear();
-
-    //soundPlayer->unholdAll();
-  }
-
-  /**
-   * Should be called only from rendering thread.
-   * Invoke after State.init() to clear remaining resources that are were not requested to be held in State.init()
-   */
-  void clearAfterStateInit(void) {
-    log("Clearing after state init");
-    //soundPlayer->clear(false);
   }
 };
