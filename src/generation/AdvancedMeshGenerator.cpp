@@ -64,6 +64,11 @@ void AdvancedMeshGenerator::faceNormalFromThreeVertices(const Glade::Vector3f &a
 
 void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel, bool regenerate, FunctionType type)
 {
+  Glade::Vector3f translateFinalVertices;
+  if (type == CENTER_CELL_ONLY) {
+    translateFinalVertices.set(-grid.chunkSizeCells * grid.cellSize / 2, -20 * grid.cellSize, -grid.chunkSizeCells * grid.cellSize / 2);
+  }
+
   mesh.erase();
   int ifirst = chunkIndex.x * grid.chunkSizeCells;
   int kfirst = chunkIndex.y * grid.chunkSizeCells;
@@ -167,9 +172,9 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
           for (int coordi = 0; coordi < 3; coordi++) {
             // position
             Glade::Vector3f &v = vertlist[MarchingCubesTables::triTable[cubeindex][i + coordi]];
-            mesh.vertices.push_back(v.x);
-            mesh.vertices.push_back(v.y);
-            mesh.vertices.push_back(v.z);
+            mesh.vertices.push_back(v.x + translateFinalVertices.x);
+            mesh.vertices.push_back(v.y + translateFinalVertices.y);
+            mesh.vertices.push_back(v.z + translateFinalVertices.z);
 
             Glade::Vector3f normal;
             mesh.vertices.push_back(faceNormal.x);

@@ -302,7 +302,7 @@ void Glade::Renderer::moveAllObjectsIntoVideoMemory(void)
 void Glade::Renderer::moveIntoVideoMemory(GladeObject &sceneObject)
 {
   GladeObject::DrawablesI di = sceneObject.getDrawables()->begin();
-  
+
   while (di != sceneObject.getDrawables()->end()) {
     moveIntoVideoMemory((*di)->getMesh());
     moveIntoVideoMemory((*di)->getTexture());
