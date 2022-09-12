@@ -10,7 +10,9 @@ namespace Glade {
       Mesh() :
         vertexVboId(-1),
         indexVboId(-1),
-        vaoId(-1)
+        vaoId(-1),
+        neverErase(false),
+        bulletMeshDecorator(nullptr)
       {
       }
 
@@ -23,6 +25,9 @@ namespace Glade {
       short int vertexVboId, indexVboId, vaoId;
       Vertices vertices;
       Indices indices;
+
+      void* bulletMeshDecorator;
+      bool neverErase;
       
       virtual float* getVertices()
       {
@@ -43,10 +48,12 @@ namespace Glade {
       {
         return indices.size();
       }
-      
+
       virtual void erase(void) {
-        vertices.clear();
-        indices.clear();
+        if (!neverErase) {
+          vertices.clear();
+          indices.clear();
+        }
       }
 
       Mesh* clone() {
@@ -66,5 +73,10 @@ namespace Glade {
         return true;
       }
     
+      void* getBulletMeshInterface()
+      {
+        // (BulletTriangleMeshDecorator*) not a real decorator, but I will fix it
+        return bulletMeshDecorator;
+      }
   };
 }

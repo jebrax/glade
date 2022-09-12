@@ -15,7 +15,7 @@
 
 class Context {
 public:
-  Timer timer;
+  Timer physicsTimer;
   Glade::Renderer* renderer;
 
   // these are instantiated here because there's only one implementation now
@@ -42,7 +42,8 @@ public:
     clearRequested(false),
     suspend(false),
     currentState(nullptr),
-    requestedState(nullptr)
+    requestedState(nullptr),
+    physicsTimer(true)
   {
   }
 
@@ -134,10 +135,10 @@ public:
 
     if (getCurrentState() != NULL) {
       if (enableSimulator)
-        getSimulator()->stepSimulation(timer.getDeltaTime());  
+        getSimulator()->stepSimulation(physicsTimer.getDeltaTime());  
 
-      if (enableCollisionDetector)
-        getCollisionDetector()->detectCollisions(timer.getDeltaTime());
+      //if (enableCollisionDetector)
+      //  getCollisionDetector()->detectCollisions(timer.getDeltaTime());
 
       //if (enableAiContainer)
         //getAiContainer()->process(getCurrentState());

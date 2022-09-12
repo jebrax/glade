@@ -4,12 +4,13 @@
 
 class Timer {
 private:
-  bool paused;
+  bool paused, autoReset;
   clock_t baseClockstamp;
 public:
-  Timer(void):
+  Timer(bool auto_reset = false):
     paused(false),
-    baseClockstamp(0L)
+    baseClockstamp(0L),
+    autoReset(auto_reset)
   {}
   
   /**
@@ -17,12 +18,18 @@ public:
    */
   float getDeltaTime(void) {
     if (baseClockstamp == 0L) { // reset was never called
+      if (autoReset)
+        reset();
+
       return 0;
     }
     
     clock_t currentClockstamp = clock();
     clock_t deltaClock = currentClockstamp - baseClockstamp;
         
+    if (autoReset)
+      reset();
+
     return paused ? 0.0f: ((float)(1000 * deltaClock) / (float) CLOCKS_PER_SEC);
   }
   
