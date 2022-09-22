@@ -18,9 +18,8 @@ public:
   void set(const Vector2i &vector) { x  = vector.x; y  = vector.y; }
   void set(int x, int y) { this->x = x; this->y = y; }
   void add(const Vector2i &vector) { x += vector.x; y += vector.y; }
-  void dot(const Vector2i &vector) { x *= vector.x; y *= vector.y; }
+  int dot(const Vector2i &vector) { return x * vector.x + y * vector.y; }
   void add(const Vector2i &vector, Vector2i &result) { result.x = x + vector.x; result.y = y + vector.y; }
-  void dot(const Vector2i &vector, Vector2i &result) { result.x = x * vector.x; result.y = y * vector.y; }
 
   bool operator<(const Vector2i &rhs) const {
     int lhsDistSq = this->x * this->x + this->y * this->y;
@@ -43,9 +42,8 @@ public:
   void set(const Vector3i &vector) { x  = vector.x; y  = vector.y; z  = vector.z; }
   void set(int x, int y, int z) { this->x = x; this->y = y; this->z = z; }
   void add(const Vector3i &vector) { x += vector.x; y += vector.y; z += vector.z; }
-  void dot(const Vector3i &vector) { x *= vector.x; y *= vector.y; z *= vector.z; }
+  int dot(const Vector3i &vector) { return x * vector.x + y * vector.y + z * vector.z; }
   void add(const Vector3i &vector, Vector3i &result) { result.x = x + vector.x; result.y = y + vector.y; result.z = z + vector.z; }
-  void dot(const Vector3i &vector, Vector3i &result) { result.x = x * vector.x; result.y = y * vector.y; result.z = z * vector.z; }
 
   bool operator==(const Vector3i &rhs) const {
     return (x == rhs.x && y == rhs.y && z == rhs.z);
@@ -62,9 +60,8 @@ public:
   void set(const Vector2f &vector) { x  = vector.x; y  = vector.y; }
   void set(float x, float y) { this->x = x; this->y = y; }
   void add(const Vector2f &vector) { x += vector.x; y += vector.y; }
-  void dot(const Vector2f &vector) { x *= vector.x; y *= vector.y; }
+  float dot(const Vector2f &vector) { return x * vector.x + y * vector.y; }
   void add(const Vector2f &vector, Vector2f &result) { result.x = x + vector.x; result.y = y + vector.y; }
-  void dot(const Vector2f &vector, Vector2f &result) { result.x = x * vector.x; result.y = y * vector.y; }
 };
 
 class Vector3f {
@@ -79,11 +76,16 @@ public:
   void add(const Vector3f &vector) { x += vector.x; y += vector.y; z += vector.z; }
   void subtract(const Vector3f &vector) { x -= vector.x; y -= vector.y; z -= vector.z; }
   void subtract(const Vector3f &vector, Vector3f &result) { result.x = x - vector.x; result.y = y - vector.y; result.z = z - vector.z; }
-  void dot(const Vector3f &vector) { x *= vector.x; y *= vector.y; z *= vector.z; }
+  float dot(const Vector3f &vector) { return x * vector.x + y * vector.y + z * vector.z; }
   void add(const Vector3f &vector, Vector3f &result) { result.x = x + vector.x; result.y = y + vector.y; result.z = z + vector.z; }
-  void dot(const Vector3f &vector, Vector3f &result) { result.x = x * vector.x; result.y = y * vector.y; result.z = z * vector.z; }
   float magnitude() { return ::sqrt(x*x + y*y + z*z); }
-  
+
+  void scale(float scalar) {
+    x *= scalar;
+    y *= scalar;
+    z *= scalar;
+  }
+ 
   void cross(const Vector3f &vector, Vector3f &result)
   {
     result.x = y * vector.z - z * vector.y;
@@ -120,9 +122,8 @@ public:
   void set(const Vector4f &vector) { x  = vector.x; y  = vector.y; z  = vector.z; w  = vector.w; }
   void set(float x, float y, float z, float w) { this->x = x; this->y = y; this->z = z; this->w = w; }
   void add(const Vector4f &vector) { x += vector.x; y += vector.y; z += vector.z; w += vector.w; }
-  void dot(const Vector4f &vector) { x *= vector.x; y *= vector.y; z *= vector.z; w *= vector.w; }
+  float dot(const Vector4f &vector) { return x * vector.x + y * vector.y + z * vector.z + w * vector.w; }
   void add(const Vector4f &vector, Vector4f &result) { result.x = x + vector.x; result.y = y + vector.y; result.z = z + vector.z; result.w = w + vector.w; }
-  void dot(const Vector4f &vector, Vector4f &result) { result.x = x * vector.x; result.y = y * vector.y; result.z = z * vector.z; result.w = w * vector.w; }
 };
 
 class Vector4i {
@@ -135,9 +136,8 @@ public:
   void set(const Vector4i &vector) { x  = vector.x; y  = vector.y; z  = vector.z; w  = vector.w; }
   void set(int x, int y, int z, int w) { this->x = x; this->y = y; this->z = z; this->w = w; }
   void add(const Vector4i &vector) { x += vector.x; y += vector.y; z += vector.z; w += vector.w; }
-  void dot(const Vector4i &vector) { x *= vector.x; y *= vector.y; z *= vector.z; w *= vector.w; }
+  int dot(const Vector4i &vector) { return x * vector.x + y * vector.y + z * vector.z + w * vector.w; }
   void add(const Vector4i &vector, Vector4i &result) { result.x = x + vector.x; result.y = y + vector.y; result.z = z + vector.z; result.w = w + vector.w; }
-  void dot(const Vector4i &vector, Vector4i &result) { result.x = x * vector.x; result.y = y * vector.y; result.z = z * vector.z; result.w = w * vector.w; }
 };
 
 } // namespace Glade
