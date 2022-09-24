@@ -119,9 +119,6 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
 
             //log("Noise value: %f", cell.val[cubeVertNum]);
           }
-
-          // PROBLEM: Adjancent cell cube vertices probably do not have a corresponding value! Use grid.setValueAtCell() but check it's implementation first
-          grid.cells.insert_or_assign(cellIndex, cell);
         }
 
         int cubeindex = 0;
@@ -161,6 +158,8 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         if (MarchingCubesTables::edgeTable[cubeindex] & 2048)
           vertlist[11] = VertexInterp(isolevel, cell.p[3], cell.p[7], cell.val[3], cell.val[7]);
 
+        cell.startingVertexIndex = index;
+
         for (int i = 0; MarchingCubesTables::triTable[cubeindex][i] != -1; i += 3) {
           Glade::Vector3f &v1 = vertlist[MarchingCubesTables::triTable[cubeindex][i + 0]];
           Glade::Vector3f &v2 = vertlist[MarchingCubesTables::triTable[cubeindex][i + 1]];
@@ -187,6 +186,13 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
 
             mesh.indices.push_back(index++);
           }
+        }
+
+        cell.numVertices = index - cell.startingVertexIndex;
+
+        if (regenerate) {
+          // PROBLEM: Adjancent cell cube vertices probably do not have a corresponding value! Use grid.setValueAtCell() but check it's implementation first
+          grid.cells.insert_or_assign(cellIndex, cell);
         }
       }
     }

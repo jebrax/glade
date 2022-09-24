@@ -9,7 +9,9 @@ struct Grid
 {
   struct Cell
   {
-    Cell(const Glade::Vector3i& cellIndex, float cellSize)
+    Cell(const Glade::Vector3i& cellIndex, float cellSize):
+      startingVertexIndex(-1),
+      numVertices(-1)
     {
       float x = cellIndex.x * cellSize;
       float y = cellIndex.y * cellSize;
@@ -65,6 +67,7 @@ struct Grid
 
     Glade::Vector3f p[8];
     float val[8];
+    int startingVertexIndex, numVertices;
   };
 
   Grid(int chunkSizeCells, float cellSize);
