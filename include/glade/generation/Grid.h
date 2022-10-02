@@ -5,17 +5,20 @@
 #include <unordered_map>
 #include <vector>
 
+class GladeObject;
+
 struct Grid
 {
   struct Cell
   {
-    Cell(const Glade::Vector3i& cellIndex, float cellSize):
+    Cell(const Glade::Vector3i& cellIndexInsideChunk, float cellSize, GladeObject *chunkEntity):
       startingVertexIndex(-1),
-      numVertices(-1)
+      numVertices(-1),
+      chunkEntity(chunkEntity)
     {
-      float x = cellIndex.x * cellSize;
-      float y = cellIndex.y * cellSize;
-      float z = cellIndex.z * cellSize;
+      float x = cellIndexInsideChunk.x * cellSize;
+      float y = cellIndexInsideChunk.y * cellSize;
+      float z = cellIndexInsideChunk.z * cellSize;
 
       for (int i = 0; i < 8; ++i) {
         val[i] = 0.6;
@@ -65,13 +68,21 @@ struct Grid
       return result;
     }
 
+    GladeObject* getChunkEntity() {
+      return chunkEntity;
+    }
+
     Glade::Vector3f p[8];
     float val[8];
     int startingVertexIndex, numVertices;
+
+    private:
+      GladeObject *chunkEntity;
   };
 
-  Grid(int chunkSizeCells, float cellSize);
+  Grid(int chunkSizeCells, float cellSize, int gridSizeChunks);
 
+  Cell& getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate = false);
   void addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder);
   void setValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float val);
   void addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index = -1);
@@ -83,16 +94,32 @@ struct Grid
   int coordToCellCoord(float coord) const;
   Glade::Vector3i getCellForPoint(const Glade::Vector3f &point) const;
 
+  void addChunk(int i, int j, GladeObject* obj) {
+    Glade::Vector2i chunkIndex(i, j);
+    chunks.emplace(chunkIndex, obj);
+  }
+
+  int getGridSizeChunks() {
+    return gridSizeChunks;
+  }
+
   typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
   typedef Cells::iterator CellsI;
   typedef std::unordered_map<Glade::Vector3i, std::vector<int>*> AdjacencyMap;
   typedef AdjacencyMap::iterator AdjacencyMapI;
 
+  typedef std::unordered_map<Glade::Vector2i, GladeObject*> Chunks;
+  typedef Chunks::iterator ChunksI;
+
   float chunkSizeCoords;
   float cellSize;
   int chunkSizeCells;
   Cells cells;
+  Chunks chunks;
 
   AdjacencyMap cubeAdjacencyMap;
+
+  private:
+    int gridSizeChunks;
 };
 

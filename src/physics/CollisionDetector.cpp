@@ -3,131 +3,160 @@
 
 #include <glade/debug/log.h>
 #include <glade/physics/CollisionDetector.h>
-#include <glade/physics/CollisionShape.h>
-#include <glade/physics/CollisionEvent.h>
-#include <glade/physics/CollisionEventListener.h>
+#include <glade/physics/PhysicalObject.h>
+#include <glade/generation/Grid.h>
 #include <glade/GladeObject.h>
+
+#include <ccd/ccd.h>
+#include <ccd/quat.h>
+
+struct CollisionInfo {
+  ccd_vec3_t dir;
+  ccd_real_t depth;
+};
 
 void CollisionDetector::clear()
 {
-  clearObjects();
-  clearListeners();
+  staticCollidableObjects.clear();
+  kinematicObj = nullptr;
   paused = false;
 }
 
-void CollisionDetector::clearObjects()
+// only this one is supported for now
+void CollisionDetector::testVsIsosurfaceCellNarrowPhase(GladeObject *kinematicObject, Grid::Cell *staticIsosurfaceCell, std::vector<CollisionInfo> &collisions)
 {
-  staticCollidableObjects.clear();
-  dynamicCollidableObjects.clear();
+  ccd_t ccd;
+  CCD_INIT(&ccd);
+
+  ccd.support1       = (ccd_support_fn) staticIsosurfaceCell->getChunkEntity()->getPhysicalObject()->getGjkSupportFunction();
+  ccd.support2       = (ccd_support_fn) kinematicObject->getPhysicalObject()->getGjkSupportFunction();
+  ccd.max_iterations = 100;
+  ccd.epa_tolerance  = 0.0001;
+
+  ccd_real_t depth;
+  ccd_vec3_t dir, pos;
+
+  int intersect;
+
+  intersect = ccdGJKPenetration(staticIsosurfaceCell, kinematicObject->getPhysicalObject(), &ccd, &depth, &dir, &pos);
+  if (intersect >= 0) {
+    CollisionInfo collision;
+    collision.depth = depth;
+    collision.dir = dir;
+    collisions.push_back(collision);
+  }
 }
 
-void CollisionDetector::clearListeners()
+void CollisionDetector::detectAndResolveCollisions(long deltaTime)
 {
-  listeners.clear();
-}
+  if (kinematicObj == nullptr || grid == nullptr)
+    return;
 
-void CollisionDetector::detectCollisions(long deltaTime)
-{
-  if (paused) {
+  // Broad phase (only kinematic shape (sphere or other simple) vs staticIsosurfaceCell is supported now)
+  std::vector<Grid::Cell*> staticObjects;
+
+  for (int i = 0; i < grid->chunkSizeCells; i++) {
+    for (int j = 0; j < 40; j++) {
+      for (int k = 0; k < grid->chunkSizeCells; k++) {
+        Glade::Vector3i cellCoord(i, j, k);
+        auto celli = grid->cells.find(cellCoord);
+
+        if (celli == grid->cells.end()) {
+          //log("No cell here");
+          continue;
+        }
+
+        Grid::Cell &cell = celli->second;
+
+        if (cell.numVertices <= 0) {
+          //log("No vertices in this cell");
+          continue;
+        }
+
+        staticObjects.push_back(&cell);
+      }
+    }
+  }
+
+  // Narrow phase
+  std::vector<CollisionInfo> collisions;
+
+  for (Grid::Cell* cell: staticObjects) {
+    testVsIsosurfaceCellNarrowPhase(kinematicObj, cell, collisions);
+  }
+
+  log("Found collisions: %d", collisions.size());
+
+  // Resolve
+  if (prevPosition == nullptr) {
+    if (collisions.size() > 0)
+      log("Warning: collisions unresolved in the first frame");
+
+    prevPosition = new Glade::Vector3f(*kinematicObj->getTransform()->position);
     return;
   }
 
-  std::vector<GladeObject*>::iterator di = dynamicCollidableObjects.begin();
-  std::vector<GladeObject*>::iterator si;
+  Glade::Vector3f separation;
 
-  while (di != dynamicCollidableObjects.end()) {
-    if ((*di)->isCollisionShapeEnabled()) {
-      si = staticCollidableObjects.begin();
-
-      while (si != staticCollidableObjects.end()) {
-        detectAndDispatch(**di, **si);
-        ++si;
-      }
-
-      std::vector<GladeObject*>::iterator di2 = di;
-      ++di2;
-
-      while (di2 != dynamicCollidableObjects.end()) {
-        detectAndDispatch(**di, **di2);
-        ++di2;
-      }
-    }
-
-    ++di;
+  for (const CollisionInfo& collision: collisions) {
+    Glade::Vector3f partialSeparation(ccdVec3X(&collision.dir), ccdVec3Y(&collision.dir), ccdVec3Z(&collision.dir));
+    partialSeparation.scale(collision.depth);
+    separation.add(partialSeparation);
   }
+
+  //log("Penetration depth: %f, Separation dir: %f %f %f", depth, ccdVec3X(&dir), ccdVec3Y(&dir), ccdVec3Z(&dir));
+  Glade::Vector3f separationDir(separation);
+  separationDir.normalize();
+
+  Glade::Vector3f toPrevPosition = *prevPosition;
+  toPrevPosition.subtract(*kinematicObj->getTransform()->position);
+  toPrevPosition.normalize();
+
+  float dot = toPrevPosition.dot(separationDir);
+
+  if (dot > 0.71) { // stick/slide threshold is about 45 degrees
+    // stick
+    log("Resolving (stick)");
+    float pushDistance = separation.magnitude() / dot;
+    Glade::Vector3f pushVector(toPrevPosition);
+    pushVector.scale(pushDistance);
+    kinematicObj->getTransform()->position->add(pushVector);
+  } else {
+    // slide
+    log("Resolving (slide)");
+    kinematicObj->getTransform()->position->add(separation);
+  }
+
+  prevPosition->set(*kinematicObj->getTransform()->position);
 }
 
 void CollisionDetector::add(GladeObject* object)
 {
-  if (object->getCollisionShape() != NULL) {
-    if (object->getPhysicBody() == NULL) {
-      staticCollidableObjects.push_back(object);
-    } else {
-      dynamicCollidableObjects.push_back(object);
-    }
+  if (object->getPhysicalObject() == nullptr) {
+    return;
+  }
+
+  if (object->getPhysicalObject()->getType() == PhysicalObject::STATIC) {
+    staticCollidableObjects.push_back(object);
+    log("Adding static object");
+  } else {
+    kinematicObj = object;
+    log("Adding kinematic object");
   }
 }
 
 void CollisionDetector::remove(GladeObject* object)
 {
-  std::vector<GladeObject*>::iterator oi =
-    std::find(dynamicCollidableObjects.begin(), dynamicCollidableObjects.end(), object);
-  
-  if (oi == dynamicCollidableObjects.end()) {
-    oi = std::find(staticCollidableObjects.begin(), staticCollidableObjects.end(), object);
-    
-    if (oi == staticCollidableObjects.end()) {
-      log("Warning: could not remove object becasuse it's not in the simulator");
-      return;
-    }
-    
+  if (object == kinematicObj) {
+    kinematicObj = nullptr;
+    return;
+  }
+
+  auto oi = std::find(staticCollidableObjects.begin(), staticCollidableObjects.end(), object);
+  if (oi != staticCollidableObjects.end()) {
     staticCollidableObjects.erase(oi);
     return;
   }
-  
-  dynamicCollidableObjects.erase(oi);
-}
 
-void CollisionDetector::addListener(CollisionEventListener* listener)
-{
-  listeners.push_back(listener);
-}
-
-void CollisionDetector::removeListener(CollisionEventListener* listener)
-{
-  std::vector<CollisionEventListener*>::iterator i = std::find(listeners.begin(), listeners.end(), listener);
-
-  if (i != listeners.end()) {
-    listeners.erase(i);
-  }
-}
-
-void CollisionDetector::detectAndDispatch(GladeObject &object1, GladeObject &object2)
-{
-  Glade::Vector3f overlap;
-  
-  if (object2.isCollisionShapeEnabled()) {
-     bool collided = object1.getCollisionShape()->testCollisionWith(
-      object2.getCollisionShape(),
-      object1.getTransform(),
-      object2.getTransform(),
-      overlap
-    );
-    
-    if (collided) {
-      CollisionEvent collisionEvent(&object1, &object2, overlap);
-    
-      log("COLLISION DETECTED: overlap is (%3.3f, %3.3f, %3.3f)", overlap.x, overlap.y, overlap.z);
-
-      std::vector<CollisionEventListener*>::iterator i = listeners.begin();
-
-      while (i != listeners.end()) {
-        if ((*i)->onCollision(collisionEvent)) {
-          break;
-        }
-
-        ++i;
-      }
-    }
-  }
+  log("Warning: tried to remove physical object that isn't there");
 }

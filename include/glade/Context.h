@@ -7,7 +7,6 @@
 #include "State.h"
 #include "ui/layout/Layout.h"
 #include "controls/VirtualController.h"
-#include "physics/Simulator.h"
 #include "physics/CollisionDetector.h"
 #include "ai/AiContainer.h"
 #include "Timer.h"
@@ -19,11 +18,10 @@ public:
   Glade::Renderer* renderer;
 
   // these are instantiated here because there's only one implementation now
-  Simulator simulator;
   CollisionDetector collisionDetector;
   AiContainer aiContainer;
 
-  bool enableSimulator, enableCollisionDetector, enableAiContainer;
+  bool enableCollisionDetector, enableAiContainer;
 
 private:
   State *currentState, *requestedState;
@@ -35,7 +33,6 @@ private:
 public:
   Context(Glade::Renderer* renderer):
     renderer(renderer),
-    enableSimulator(true),
     enableCollisionDetector(true),
     enableAiContainer(true),
     stopRequested(false),
@@ -66,10 +63,6 @@ public:
 
   State* getCurrentState(void) {
     return currentState;
-  }
-
-  Simulator* getSimulator(void) {
-    return &simulator;
   }
 
   CollisionDetector* getCollisionDetector(void) {
@@ -134,11 +127,8 @@ public:
     }
 
     if (getCurrentState() != NULL) {
-      if (enableSimulator)
-        getSimulator()->stepSimulation(physicsTimer.getDeltaTime());  
-
-      //if (enableCollisionDetector)
-      //  getCollisionDetector()->detectCollisions(timer.getDeltaTime());
+      if (enableCollisionDetector)
+        getCollisionDetector()->detectAndResolveCollisions(physicsTimer.getDeltaTime());
 
       //if (enableAiContainer)
         //getAiContainer()->process(getCurrentState());
@@ -204,7 +194,6 @@ private:
    */
   void removeNow(GladeObject* object) {
     renderer->remove(object);
-    simulator.remove(object);
     collisionDetector.remove(object);
     //aiContainer->remove(object);
   }
@@ -215,7 +204,6 @@ private:
   void addNow(GladeObject* object) {
     //log("Adding now");
     renderer->add(object);
-    simulator.add(object);
     collisionDetector.add(object);
     //aiContainer->add(object);
   }
@@ -227,7 +215,6 @@ private:
     log("Clearing fully");
 
     renderer->clear();
-    simulator.clear();
     collisionDetector.clear();
     aiContainer.clear();
 

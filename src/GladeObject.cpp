@@ -4,14 +4,23 @@
 
 GladeObject::GladeObject(void):
   enabled(true),
-  physicBody(NULL),
-  collisionShape(NULL),
+  physicalObject(NULL),
   behavior(NULL),
-  colShapeEnabled(true),
-  physicBodyEnabled(true),
+  physicalObjectEnabled(true),
   behaviorEnabled(true),
   name("Undefined")
 {
+}
+
+Drawable* GladeObject::getView()
+{
+  int size = drawables.size();
+  if (size == 0)
+    return nullptr;
+  if (size > 1)
+    log("Warning: GladeObject::getView() will return first drawable, but there are more in this entity");
+
+  return drawables[0];
 }
 
 void GladeObject::setEnabled(bool enable)
@@ -61,22 +70,14 @@ GladeObject::Drawables* GladeObject::getDrawables(void)
   return &drawables;
 }
 
-void GladeObject::setPhysicBody(PhysicBody &physicBody)
+void GladeObject::setPhysicalObject(PhysicalObject &physicalObject)
 {
-  this->physicBody = &physicBody;
+  this->physicalObject = &physicalObject;
 }
 
-PhysicBody* GladeObject::getPhysicBody()
+PhysicalObject* GladeObject::getPhysicalObject()
 {
-  return physicBody;
-}
-
-CollisionShape* GladeObject::getCollisionShape(void) {
-  return collisionShape;
-}
-
-void GladeObject::setCollisionShape(CollisionShape &collisionShape) {
-  this->collisionShape = &collisionShape;
+  return physicalObject;
 }
 
 void GladeObject::toggleView(Drawable& view, bool enable)
@@ -95,19 +96,14 @@ void GladeObject::toggleView(bool enable)
   }
 }
 
-void GladeObject::toggleCollisionShape(bool enable)
-{
-  colShapeEnabled = enable;
-}
-
 void GladeObject::toggleBehavior(bool enable)
 {
   behaviorEnabled = enable;
 }
 
-void GladeObject::togglePhysicBody(bool enable)
+void GladeObject::togglePhysicalObject(bool enable)
 {
-  physicBodyEnabled = enable;
+  physicalObjectEnabled = enable;
 }
 
 bool GladeObject::isViewEnabled(Drawable *view) const
@@ -121,21 +117,14 @@ bool GladeObject::isViewEnabled(Drawable *view) const
   return false;
 }
 
-bool GladeObject::isCollisionShapeEnabled() const
-{
-  return colShapeEnabled;
-}
-
-
 bool GladeObject::isBehaviorEnabled() const
 {
   return behaviorEnabled;
 }
 
-
-bool GladeObject::isPhysicBodyEnabled() const
+bool GladeObject::isPhysicalObjectEnabled() const
 {
-  return physicBodyEnabled;
+  return physicalObjectEnabled;
 }
 
 /** This is for debugging purposes */

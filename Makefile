@@ -1,10 +1,16 @@
-libglade.a: BulletTriangleMeshDecorator.o FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o Simulator.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o lodepng.o assets builddir set-env
-	libtool -static -o build/glade/libglade.a build/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Simulator.o build/glade/CollisionDetector.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/MeshGenerator.o build/glade/AdvancedMeshGenerator.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o build/glade/Grid.o build/glade/noise.o build/glade/BulletTriangleMeshDecorator.o
+libglade.a: SpherePhysicalObject.o IsosurfaceCellPhysicalObject.o FreetypeFont.o Layout.o Widget.o log.o Matrix.o globals.o Path.o WavefrontObjReader.o CSVReader.o CollisionDetector.o Perception.o GladeRenderer.o GladeObject.o ResourceManager.o DesktopFileManager.o MarchingCubesTables.o MeshGenerator.o AdvancedMeshGenerator.o Grid.o noise.o lodepng.o assets builddir set-env
+	libtool -static -o build/glade/libglade.a build/lodepng/lodepng.o build/glade/FreetypeFont.o build/glade/CollisionDetector.o build/glade/IsosurfaceCellPhysicalObject.o build/glade/SpherePhysicalObject.o build/glade/ResourceManager.o build/glade/Layout.o build/glade/Widget.o build/glade/log.o build/glade/Matrix.o build/glade/globals.o build/glade/Path.o build/glade/WavefrontObjReader.o build/glade/CSVReader.o build/glade/Perception.o build/glade/MarchingCubesTables.o build/glade/MeshGenerator.o build/glade/AdvancedMeshGenerator.o build/glade/GladeRenderer.o build/glade/GladeObject.o build/glade/DesktopFileManager.o build/glade/Grid.o build/glade/noise.o
 
 ######################
 
-BulletTriangleMeshDecorator.o: builddir
-	clang -std=c++17 -O0 -g -I${VENDOR}/glew/include -I${VENDOR}/bullet3/src -Iinclude -DGLADE_MACOS -c src/physics/BulletTriangleMeshDecorator.cpp -o build/glade/BulletTriangleMeshDecorator.o
+CollisionDetector.o: builddir
+	clang++ -std=c++20 -O0 -g -I${VENDOR}/libccd/src -Iinclude -DGLADE_MACOS -c src/physics/CollisionDetector.cpp -o build/glade/CollisionDetector.o
+
+SpherePhysicalObject.o: builddir
+	clang++ -std=c++20 -O0 -g -I${VENDOR}/libccd/src -Iinclude -DGLADE_MACOS -c src/physics/SpherePhysicalObject.cpp -o build/glade/SpherePhysicalObject.o
+
+IsosurfaceCellPhysicalObject.o: builddir
+	clang++ -std=c++20 -O0 -g -I${VENDOR}/libccd/src -Iinclude -DGLADE_MACOS -c src/physics/IsosurfaceCellPhysicalObject.cpp -o build/glade/IsosurfaceCellPhysicalObject.o
 
 lodepng.o: builddir-lodepng
 	clang -O0 -g -c ${VENDOR}/lodepng/lodepng.cpp -o build/lodepng/lodepng.o
@@ -41,12 +47,6 @@ ResourceManager.o: builddir
 
 DesktopFileManager.o: builddir
 	clang -O0 -g -Iinclude -DGLADE_MACOS -c src/util/DesktopFileManager.cpp -o build/glade/DesktopFileManager.o
-
-Simulator.o: builddir
-	clang -O0 -g -Iinclude -DGLADE_MACOS -c src/physics/Simulator.cpp -o build/glade/Simulator.o
-
-CollisionDetector.o: builddir
-	clang -O0 -g -Iinclude -DGLADE_MACOS -c src/physics/CollisionDetector.cpp -o build/glade/CollisionDetector.o
 
 Perception.o: builddir
 	clang -O0 -g -Iinclude -DGLADE_MACOS -c src/render/Perception.cpp -o build/glade/Perception.o
@@ -92,6 +92,6 @@ clean:
 
 set-env:
 ifndef VENDOR
-VENDOR=deps
+VENDOR=..
 endif
 

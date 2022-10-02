@@ -85,14 +85,11 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         float x = i * grid.cellSize;
         float y = j * grid.cellSize;
         float z = k * grid.cellSize;
-        
+
         Glade::Vector3i cellIndex(ifirst + i, j, kfirst + k);
-        Glade::Vector3i cellIndexInsideChunk(i, j, k);
+        Grid::Cell &cell = grid.getOrCreateCell(cellIndex, regenerate);
 
-        Grid::Cell newCell(cellIndexInsideChunk, grid.cellSize);
-        auto i = grid.cells.find(cellIndex);
-        Grid::Cell &cell = (regenerate || i == grid.cells.end()) ? newCell : i->second;
-
+        // FIXME Are you sure that we need the regenerate boolean at all?
         if (regenerate) {
           for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
             switch (type) {

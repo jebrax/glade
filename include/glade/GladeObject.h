@@ -7,8 +7,7 @@
 #include "math/Transform.h"
 
 class Behavior;
-class PhysicBody;
-class CollisionShape;
+class PhysicalObject;
 class Drawable;
 
 class GladeObject {
@@ -25,13 +24,11 @@ public:
 
 protected:
   bool enabled;
-  PhysicBody* physicBody;
-  CollisionShape* collisionShape;
+  PhysicalObject* physicalObject;
   Behavior* behavior;
   Drawables drawables;
   std::map<Drawable*, bool> visibilitySwitches;
-//Set<Sound> sounds;
-  bool colShapeEnabled, physicBodyEnabled, behaviorEnabled;
+  bool physicalObjectEnabled, behaviorEnabled;
 
 private:
   std::string name;
@@ -50,24 +47,18 @@ public:
   virtual void addDrawables(Drawables &drawables);
   virtual Drawables* getDrawables(void);
 
-  /*
-  void addSound(Sound sound);
-  Collection<Sound> getSounds();
-  */
-
-  virtual void setPhysicBody(PhysicBody &physicBody);
-  virtual PhysicBody* getPhysicBody();
-  virtual CollisionShape* getCollisionShape(void);
-  virtual void setCollisionShape(CollisionShape &collisionShape);
+  virtual void setPhysicalObject(PhysicalObject &physicalObject);
+  virtual PhysicalObject* getPhysicalObject();
   virtual void toggleView(Drawable& view, bool enable);
   virtual void toggleView(bool enable);
-  virtual void toggleCollisionShape(bool enable);
   virtual void toggleBehavior(bool enable);
-  virtual void togglePhysicBody(bool enable);
+  virtual void togglePhysicalObject(bool enable);
   virtual bool isViewEnabled(Drawable *view) const;
-  virtual bool isCollisionShapeEnabled() const;
   virtual bool isBehaviorEnabled() const;
-  virtual bool isPhysicBodyEnabled() const;
+  virtual bool isPhysicalObjectEnabled() const;
+
+  // returns first element of the drawables array (or nullptr)
+  Drawable *getView();
 
   /** This is for debugging purposes */
   virtual const std::string* getName(void) const;

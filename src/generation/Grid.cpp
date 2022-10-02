@@ -2,7 +2,7 @@
 
 #include <glade/debug/log.h>
 
-Grid::Grid(int chunkSizeCells, float cellSize): chunkSizeCells(chunkSizeCells), cellSize(cellSize)
+Grid::Grid(int chunkSizeCells, float cellSize, int gridSizeChunks): chunkSizeCells(chunkSizeCells), cellSize(cellSize), gridSizeChunks(gridSizeChunks)
 {
   chunkSizeCoords = cellSize * chunkSizeCells;
 
@@ -35,26 +35,38 @@ Grid::Grid(int chunkSizeCells, float cellSize): chunkSizeCells(chunkSizeCells), 
   cubeAdjacencyMap[Glade::Vector3i(-1, -1, -1)] = new std::vector<int>({   6,   -1,   -1,   -1,   -1,   -1,   -1,   -1, });
 }
 
-void Grid::addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder)
+Grid::Cell& Grid::getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate)
 {
-  auto i = cells.find(cellIndex);
+  CellsI i = cells.find(cellIndex);
+
   if (i == cells.end()) {
-    log("Warning: trying to add value to nonexistent cell. Will create one");
-    i = cells.emplace(cellIndex, Cell(cellIndex, cellSize)).first;
+    //log("Warning: trying to access a nonexistent cell. Will create one");
+    forceCreate = true;
   }
 
-  i->second.val[cubeVertIndex] = std::clamp(i->second.val[cubeVertIndex] + adder, 0.0f, 1.0f);
+  if (forceCreate) {
+    Glade::Vector2i chunkIndex(cellIndex.x / chunkSizeCells, cellIndex.z / chunkSizeCells);
+    ChunksI chunki = chunks.find(chunkIndex);
+    assert(chunki != chunks.end() && "Tried to access nonexistent terrain chunk");
+    GladeObject *chunkEntity = chunki->second;
+    Glade::Vector3i cellIndexInsideChunk(cellIndex.x % chunkSizeCells, cellIndex.y, cellIndex.z % chunkSizeCells);
+
+    i = cells.emplace(cellIndex, Cell(cellIndexInsideChunk, cellSize, chunkEntity)).first;
+  }
+
+  return i->second;
+}
+
+void Grid::addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder)
+{
+  Cell &cell = getOrCreateCell(cellIndex);
+  cell.val[cubeVertIndex] = std::clamp(cell.val[cubeVertIndex] + adder, 0.0f, 1.0f);
 }
 
 void Grid::setValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float val)
 {
-  auto i = cells.find(cellIndex);
-  if (i == cells.end()) {
-    log("Warning: trying to set value of nonexistent cell. Will create one");
-    i = cells.emplace(cellIndex, Cell(cellIndex, cellSize)).first;
-  }
-
-  i->second.val[cubeVertIndex] = std::clamp(val, 0.0f, 1.0f);
+  Cell &cell = getOrCreateCell(cellIndex);
+  cell.val[cubeVertIndex] = std::clamp(val, 0.0f, 1.0f);
 }
 
 void Grid::addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index)
