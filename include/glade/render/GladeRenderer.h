@@ -4,8 +4,6 @@
 #include <memory>
 #include <set>
 
-#include <GL/glew.h>
-
 #include "glade/render/Perception.h"
 #include "glade/math/Transform.h"
 #include "glade/GladeObject.h"
@@ -23,31 +21,31 @@ namespace Glade {
   public:
     enum ProjectionMode {PERSPECTIVE, ORTHO};
     
-    static const GLuint POS_SIZE_FLOATS;
-    static const GLuint COLOR_SIZE_FLOATS;
-    static const GLuint NORMAL_SIZE_FLOATS;
-    static const GLuint TEXCOORD_SIZE_FLOATS;
-    static const GLuint POS_OFFSET_FLOATS;
-    static const GLuint COLOR_OFFSET_FLOATS;
-    static const GLuint NORMAL_OFFSET_FLOATS;
-    static const GLuint TEXCOORD_OFFSET_FLOATS;
-    static const GLuint VERTEX_STRIDE_FLOATS;
-    static const GLvoid * POS_OFFSET_BYTES;
-    static const GLvoid * COLOR_OFFSET_BYTES;
-    static const GLvoid * NORMAL_OFFSET_BYTES;
-    static const GLvoid * TEXCOORD_OFFSET_BYTES;
-    static const GLsizei VERTEX_STRIDE_BYTES;
+    static const uint32_t POS_SIZE_FLOATS;
+    static const uint32_t COLOR_SIZE_FLOATS;
+    static const uint32_t NORMAL_SIZE_FLOATS;
+    static const uint32_t TEXCOORD_SIZE_FLOATS;
+    static const uint32_t POS_OFFSET_FLOATS;
+    static const uint32_t COLOR_OFFSET_FLOATS;
+    static const uint32_t NORMAL_OFFSET_FLOATS;
+    static const uint32_t TEXCOORD_OFFSET_FLOATS;
+    static const uint32_t VERTEX_STRIDE_FLOATS;
+    static const void * POS_OFFSET_BYTES;
+    static const void * COLOR_OFFSET_BYTES;
+    static const void * NORMAL_OFFSET_BYTES;
+    static const void * TEXCOORD_OFFSET_BYTES;
+    static const int    VERTEX_STRIDE_BYTES;
  
   private:
       // shader program handle
-    GLuint program;
+    uint32_t program;
 
     // handles to shader uniforms
-    GLuint  uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
+    uint32_t  uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
         uSamplerNumber, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
 
     // handles to shader attributes
-      GLuint aPosition, aNormal, aTexCoord;
+      uint32_t aPosition, aNormal, aTexCoord;
  
     Perception  *perception;
     unsigned short viewportWidth, viewportHeight;
@@ -97,7 +95,7 @@ namespace Glade {
 
     void compileShaderProgram(ShaderProgram *program);
     void bindBuffers(Mesh *mesh);
-    GLuint loadShader(GLuint type, std::vector<char> &shader_source);
+    uint32_t loadShader(uint32_t type, std::vector<char> &shader_source);
     void moveIntoVideoMemory(std::shared_ptr<Mesh> mesh);
     void moveIntoVideoMemory(std::shared_ptr<Texture> texture);
     void writeUniformsToVideoMemory(Drawable *drawable, ShaderProgram &program);

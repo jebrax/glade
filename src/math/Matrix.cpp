@@ -3,14 +3,14 @@
 void Matrix::multiplyMM(float* r, int rOffset, const float* lhs, int lhsOffset, const float* rhs, int rhsOffset)
 {
   for (int i=0 ; i<4 ; i++) {
-    register const float rhs_i0 = rhs[ GLADE_I(i,0) + rhsOffset ];
-    register float ri0 = lhs[ GLADE_I(0,0) + lhsOffset ] * rhs_i0;
-    register float ri1 = lhs[ GLADE_I(0,1) + lhsOffset ] * rhs_i0;
-    register float ri2 = lhs[ GLADE_I(0,2) + lhsOffset ] * rhs_i0;
-    register float ri3 = lhs[ GLADE_I(0,3) + lhsOffset ] * rhs_i0;
+    const float rhs_i0 = rhs[ GLADE_I(i,0) + rhsOffset ];
+    float ri0 = lhs[ GLADE_I(0,0) + lhsOffset ] * rhs_i0;
+    float ri1 = lhs[ GLADE_I(0,1) + lhsOffset ] * rhs_i0;
+    float ri2 = lhs[ GLADE_I(0,2) + lhsOffset ] * rhs_i0;
+    float ri3 = lhs[ GLADE_I(0,3) + lhsOffset ] * rhs_i0;
     
     for (int j=1 ; j<4 ; j++) {
-      register const float rhs_ij = rhs[ GLADE_I(i,j) + rhsOffset ];
+      const float rhs_ij = rhs[ GLADE_I(i,j) + rhsOffset ];
       ri0 += lhs[ GLADE_I(j,0) + lhsOffset ] * rhs_ij;
       ri1 += lhs[ GLADE_I(j,1) + lhsOffset ] * rhs_ij;
       ri2 += lhs[ GLADE_I(j,2) + lhsOffset ] * rhs_ij;

@@ -1,3 +1,5 @@
+#ifdef GLADE_WINDOWS
+
 #include <stdlib.h>
 #include <windows.h>
 #include <dbghelp.h>
@@ -116,3 +118,4 @@ void install_crash_handler()
 {
   ::SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER) win32CrashHandler);
 }
+#endif // GLADE_WINDOWS

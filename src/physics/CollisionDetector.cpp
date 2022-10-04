@@ -85,8 +85,6 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
     testVsIsosurfaceCellNarrowPhase(kinematicObj, cell, collisions);
   }
 
-  log("Found collisions: %d", collisions.size());
-
   // Resolve
   if (prevPosition == nullptr) {
     if (collisions.size() > 0)
@@ -116,14 +114,12 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
 
   if (dot > 0.71) { // stick/slide threshold is about 45 degrees
     // stick
-    log("Resolving (stick)");
     float pushDistance = separation.magnitude() / dot;
     Glade::Vector3f pushVector(toPrevPosition);
     pushVector.scale(pushDistance);
     kinematicObj->getTransform()->position->add(pushVector);
   } else {
     // slide
-    log("Resolving (slide)");
     kinematicObj->getTransform()->position->add(separation);
   }
 
@@ -138,10 +134,8 @@ void CollisionDetector::add(GladeObject* object)
 
   if (object->getPhysicalObject()->getType() == PhysicalObject::STATIC) {
     staticCollidableObjects.push_back(object);
-    log("Adding static object");
   } else {
     kinematicObj = object;
-    log("Adding kinematic object");
   }
 }
 

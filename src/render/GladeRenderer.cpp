@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <algorithm>
 
+#include <GL/glew.h>
+
 #include "glade/debug/log.h"
 #include "glade/math/util.h"
 #include "glade/math/Matrix.h"

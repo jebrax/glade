@@ -11,8 +11,7 @@ namespace Glade {
         vertexVboId(-1),
         indexVboId(-1),
         vaoId(-1),
-        neverErase(false),
-        bulletMeshDecorator(nullptr)
+        neverErase(false)
       {
       }
 
@@ -26,7 +25,6 @@ namespace Glade {
       Vertices vertices;
       Indices indices;
 
-      void* bulletMeshDecorator;
       bool neverErase;
       
       virtual float* getVertices()
@@ -71,12 +69,6 @@ namespace Glade {
         }
         
         return true;
-      }
-    
-      void* getBulletMeshInterface()
-      {
-        // (BulletTriangleMeshDecorator*) not a real decorator, but I will fix it
-        return bulletMeshDecorator;
       }
   };
 }
