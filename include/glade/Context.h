@@ -11,14 +11,15 @@
 #include "ai/AiContainer.h"
 #include "Timer.h"
 #include "debug/log.h"
+#include "EventBus.h"
 
 class Context {
 public:
   Timer physicsTimer;
   Glade::Renderer* renderer;
 
-  // these are instantiated here because there's only one implementation now
-  CollisionDetector collisionDetector;
+  CollisionDetector *collisionDetector;
+  Glade::EventBus eventBus;
   AiContainer aiContainer;
 
   bool enableCollisionDetector, enableAiContainer;
@@ -40,8 +41,14 @@ public:
     suspend(false),
     currentState(nullptr),
     requestedState(nullptr),
-    physicsTimer(true)
+    collisionDetector(new CollisionDetector(this)),
+    physicsTimer(true),
+    controller(nullptr)
   {
+  }
+
+  ~Context() {
+    delete collisionDetector;
   }
 
   void requestStateChange(State* state, bool suspend = false) {
@@ -66,7 +73,7 @@ public:
   }
 
   CollisionDetector* getCollisionDetector(void) {
-    return &collisionDetector;
+    return collisionDetector;
   }
 
   AiContainer* getAiContainer(void) {
@@ -127,13 +134,10 @@ public:
     }
 
     if (getCurrentState() != NULL) {
+      getCurrentState()->applyRules(*this);
+
       if (enableCollisionDetector)
         getCollisionDetector()->detectAndResolveCollisions(physicsTimer.getDeltaTime());
-
-      //if (enableAiContainer)
-        //getAiContainer()->process(getCurrentState());
-
-      getCurrentState()->applyRules(*this);
     }
   }
 
@@ -194,7 +198,7 @@ private:
    */
   void removeNow(GladeObject* object) {
     renderer->remove(object);
-    collisionDetector.remove(object);
+    collisionDetector->remove(object);
     //aiContainer->remove(object);
   }
   
@@ -204,7 +208,7 @@ private:
   void addNow(GladeObject* object) {
     //log("Adding now");
     renderer->add(object);
-    collisionDetector.add(object);
+    collisionDetector->add(object);
     //aiContainer->add(object);
   }
 
@@ -215,7 +219,7 @@ private:
     log("Clearing fully");
 
     renderer->clear();
-    collisionDetector.clear();
+    collisionDetector->clear();
     aiContainer.clear();
 
     clearRequested = false;

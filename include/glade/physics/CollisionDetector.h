@@ -4,12 +4,13 @@
 
 class GladeObject;
 class CollisionEventListener;
+class Context;
 struct CollisionInfo;
 
 class CollisionDetector
 {
   public:
-    CollisionDetector(): paused(false), grid(nullptr), kinematicObj(nullptr), prevPosition(nullptr) {}
+    CollisionDetector(Context *context): context(context), paused(false), grid(nullptr), kinematicObj(nullptr), prevPosition(nullptr) {}
 
     void detectAndResolveCollisions(long deltaTime);
     void setSpatialIndex(Grid *grid) { this->grid = grid; }
@@ -28,6 +29,7 @@ class CollisionDetector
     Glade::Vector3f *prevPosition;
     std::vector<GladeObject*> staticCollidableObjects;
     Grid *grid;
+    Context *context;
     bool paused;
 };
 

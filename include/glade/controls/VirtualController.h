@@ -1,11 +1,65 @@
 #pragma once
 
+#include <unordered_map>
+
+namespace Glade {
+
+enum Key {
+  GLADE_KEY_W,
+  GLADE_KEY_S,
+  GLADE_KEY_A,
+  GLADE_KEY_D,
+  GLADE_KEY_SPACE,
+  GLADE_KEY_X,
+  GLADE_KEY_G,
+  GLADE_KEY_F,
+  GLADE_KEY_T,
+  GLADE_KEY_R,
+  GLADE_KEY_C,
+  GLADE_KEY_LEFT,
+  GLADE_KEY_RIGHT,
+  GLADE_KEY_UP,
+  GLADE_KEY_DOWN,
+  GLADE_KEY_O,
+  GLADE_KEY_L,
+};
+
+}
+
 class VirtualController
 {
+  std::unordered_map<Glade::Key, bool> keysState;
+
   public:
     virtual void initController() = 0;
-    virtual bool buttonPress(int controlId, int terminalId) = 0;
-    virtual bool buttonRelease(int controlId, int terminalId) = 0;
+
+    virtual bool isKeyPressed(Glade::Key controlId) {
+      auto keyState = keysState.find(controlId);
+      return (keyState != keysState.end() && keyState->second);
+    }
+
+    virtual bool buttonPress(Glade::Key controlId, int terminalId) {
+      auto keyState = keysState.find(controlId);
+
+      if (keyState == keysState.end())
+        keysState[controlId] = true;
+      else
+        keyState->second = true;
+
+      return true;
+    }
+
+    virtual bool buttonRelease(Glade::Key controlId, int terminalId) {
+      auto keyState = keysState.find(controlId);
+
+      if (keyState == keysState.end())
+        keysState[controlId] = false;
+      else
+        keyState->second = false;
+
+      return true;
+    }
+
     virtual bool pointerDown(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerUp(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerMove(float axisX, float axisY, float axisZ, int controlId, int terminalId, bool isAbsolute = true) = 0;

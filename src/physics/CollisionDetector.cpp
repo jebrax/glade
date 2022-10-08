@@ -6,6 +6,7 @@
 #include <glade/physics/PhysicalObject.h>
 #include <glade/generation/Grid.h>
 #include <glade/GladeObject.h>
+#include <glade/Context.h>
 
 #include <ccd/ccd.h>
 #include <ccd/quat.h>
@@ -33,8 +34,10 @@ void CollisionDetector::testVsIsosurfaceCellNarrowPhase(GladeObject *kinematicOb
   ccd.max_iterations = 100;
   ccd.epa_tolerance  = 0.0001;
 
-  ccd_real_t depth;
+  ccd_real_t depth = 0;
   ccd_vec3_t dir, pos;
+  ccdVec3Set(&dir, 0, 0, 0);
+  ccdVec3Set(&pos, 0, 0, 0);
 
   int intersect;
 
@@ -87,20 +90,30 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
 
   // Resolve
   if (prevPosition == nullptr) {
-    if (collisions.size() > 0)
+    if (!collisions.empty())
       log("Warning: collisions unresolved in the first frame");
 
     prevPosition = new Glade::Vector3f(*kinematicObj->getTransform()->position);
     return;
   }
 
-  Glade::Vector3f separation;
-
-  for (const CollisionInfo& collision: collisions) {
-    Glade::Vector3f partialSeparation(ccdVec3X(&collision.dir), ccdVec3Y(&collision.dir), ccdVec3Z(&collision.dir));
-    partialSeparation.scale(collision.depth);
-    separation.add(partialSeparation);
+  if (collisions.empty()) {
+    prevPosition->set(*kinematicObj->getTransform()->position);
+    return;
   }
+
+  float maxDepth = 0;
+  unsigned maxi = 0;
+
+  for (unsigned i = 0; i < collisions.size(); ++i) {
+    if (collisions[i].depth > maxDepth) {
+      maxDepth = collisions[i].depth;
+      maxi = i;
+    }
+  }
+
+  Glade::Vector3f separation(ccdVec3X(&collisions[maxi].dir), ccdVec3Y(&collisions[maxi].dir), ccdVec3Z(&collisions[maxi].dir));
+  separation.scale(collisions[maxi].depth);
 
   //log("Penetration depth: %f, Separation dir: %f %f %f", depth, ccdVec3X(&dir), ccdVec3Y(&dir), ccdVec3Z(&dir));
   Glade::Vector3f separationDir(separation);
@@ -108,22 +121,24 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
 
   Glade::Vector3f toPrevPosition = *prevPosition;
   toPrevPosition.subtract(*kinematicObj->getTransform()->position);
+  Glade::Vector3f stickyPushVector(toPrevPosition);
   toPrevPosition.normalize();
 
   float dot = toPrevPosition.dot(separationDir);
 
-  if (dot > 0.71) { // stick/slide threshold is about 45 degrees
+//  if (dot > 0.71) { // stick/slide threshold is about 45 degrees. But sticking should be only for the vertical part,
+//  // so the player does not slide down the slopes by gravity
     // stick
-    float pushDistance = separation.magnitude() / dot;
-    Glade::Vector3f pushVector(toPrevPosition);
-    pushVector.scale(pushDistance);
-    kinematicObj->getTransform()->position->add(pushVector);
-  } else {
+//    stickyPushVector.scale(1.0);
+//    kinematicObj->getTransform()->position->set(*prevPosition);
+//  } else {
     // slide
     kinematicObj->getTransform()->position->add(separation);
-  }
+//  }
 
   prevPosition->set(*kinematicObj->getTransform()->position);
+
+  context->eventBus.postEvent(Glade::EventType::GLADE_COLLISION_EVENT, kinematicObj);
 }
 
 void CollisionDetector::add(GladeObject* object)
