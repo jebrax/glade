@@ -89,7 +89,8 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         Glade::Vector3i cellIndex(ifirst + i, j, kfirst + k);
         Grid::Cell &cell = grid.getOrCreateCell(cellIndex, regenerate);
 
-        // FIXME Are you sure that we need the regenerate boolean at all?
+        // If regenerate is false it means that vertices are there, but they were altered by other means.
+        // In this case we don't want to generate new vertices, but we must recalculate normals
         if (regenerate) {
           for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
             switch (type) {

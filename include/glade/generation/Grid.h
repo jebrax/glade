@@ -99,6 +99,15 @@ struct Grid
     chunks.emplace(chunkIndex, obj);
   }
 
+  GladeObject* getChunk(int i, int j) {
+    auto chunki = chunks.find(Glade::Vector2i(i, j));
+
+    if (chunki == chunks.end())
+      return nullptr;
+
+    return chunki->second;
+  }
+
   int getGridSizeChunks() {
     return gridSizeChunks;
   }
