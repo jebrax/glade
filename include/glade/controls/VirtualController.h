@@ -31,7 +31,7 @@ class VirtualController
   std::unordered_map<Glade::Key, bool> keysState;
 
   public:
-    virtual void initController() = 0;
+    virtual void initController() {};
 
     virtual bool isKeyPressed(Glade::Key controlId) {
       auto keyState = keysState.find(controlId);
