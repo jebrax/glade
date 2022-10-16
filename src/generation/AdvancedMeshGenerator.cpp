@@ -66,7 +66,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
 {
   Glade::Vector3f translateFinalVertices;
   if (type == CENTER_CELL_ONLY) {
-    translateFinalVertices.set(-grid.chunkSizeCells * grid.cellSize / 2, -20 * grid.cellSize, -grid.chunkSizeCells * grid.cellSize / 2);
+    translateFinalVertices.set(-grid.chunkSizeCells * grid.cellSize / 2, -Grid::CHUNK_HEIGHT  * grid.cellSize / 2, -grid.chunkSizeCells * grid.cellSize / 2);
   }
 
   mesh.erase();
@@ -80,7 +80,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
   int index = 0;
 
   for (int i = 0; i < grid.chunkSizeCells; i++) {
-    for (int j = 0; j < 40; j++) {
+    for (int j = 0; j < Grid::CHUNK_HEIGHT; j++) {
       for (int k = 0; k < grid.chunkSizeCells; k++) {
         float x = i * grid.cellSize;
         float y = j * grid.cellSize;
@@ -102,7 +102,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
                   cell.p[cubeVertNum].x + xstart,
                   cell.p[cubeVertNum].y,
                   cell.p[cubeVertNum].z + zstart,
-                  40
+                  Grid::CHUNK_HEIGHT
                 );
                 break;
               case CENTER_CELL_ONLY:

@@ -9,6 +9,8 @@ class GladeObject;
 
 struct Grid
 {
+  static const int CHUNK_HEIGHT = 60;
+
   struct Cell
   {
     Cell(const Glade::Vector3i& cellIndexInsideChunk, float cellSize, GladeObject *chunkEntity):

@@ -89,7 +89,7 @@ void MeshGenerator::generateHull(Glade::Mesh &mesh, float radius, bool sphere)
         phiStep = 0.1f,
         thetaStep = 0.1f;
 
-  bool addPoles = true;
+  bool addPoles = false;
 
   for (phi = std::max(phiMin, phiStep); phi < phiMax; phi += phiStep) {
     vertsInABelt = 0;
