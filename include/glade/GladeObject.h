@@ -29,6 +29,7 @@ protected:
   Drawables drawables;
   std::map<Drawable*, bool> visibilitySwitches;
   bool physicalObjectEnabled, behaviorEnabled;
+  bool initialized = false;
 
 private:
   std::string name;

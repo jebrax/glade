@@ -58,17 +58,6 @@ float isosurfaceHeightMap(float x, float y, float z, float maxHeightMeters)
   return (y - noise + maxY) / (2 * maxY);
 }
 
-float singleCube(float x, float y, float z, Grid &grid)
-{
-  Glade::Vector3i centerCellCoord(grid.chunkSizeCells / 2, Grid::CHUNK_HEIGHT / 2, grid.chunkSizeCells / 2);
-
-  if (grid.doesCubeVertBelongInTheCell(x, y, z, centerCellCoord)) {
-    return 0.1;
-  } else {
-    return 0.8;
-  }
-}
-
 void perlinTest()
 {
   for (int x = 0; x < 5; x++) {

@@ -22,6 +22,10 @@ enum Key {
   GLADE_KEY_DOWN,
   GLADE_KEY_O,
   GLADE_KEY_L,
+  GLADE_KEY_1,
+  GLADE_KEY_2,
+  GLADE_KEY_3,
+  GLADE_KEY_4,
 };
 
 }
@@ -40,24 +44,30 @@ class VirtualController
 
     virtual bool buttonPress(Glade::Key controlId, int terminalId) {
       auto keyState = keysState.find(controlId);
+      bool changedState = true;
 
-      if (keyState == keysState.end())
+      if (keyState == keysState.end()) {
         keysState[controlId] = true;
-      else
+      } else {
+        changedState = !keyState->second;
         keyState->second = true;
+      }
 
-      return true;
+      return changedState;
     }
 
     virtual bool buttonRelease(Glade::Key controlId, int terminalId) {
       auto keyState = keysState.find(controlId);
+      bool changedState = true;
 
-      if (keyState == keysState.end())
+      if (keyState == keysState.end()) {
         keysState[controlId] = false;
-      else
+      } else {
+        changedState = keyState->second;
         keyState->second = false;
+      }
 
-      return true;
+      return changedState;
     }
 
     virtual bool pointerDown(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;

@@ -205,6 +205,21 @@ Glade::Vector3i Grid::getCellForPoint(const Glade::Vector3f &point) const
   return Glade::Vector3i(coordToCellCoord(point.x), coordToCellCoord(point.y), coordToCellCoord(point.z));
 }
 
+/* // looks like this is a better approach but some points get broken
+bool Grid::doesCubeVertBelongInTheCell(Glade::Vector3i &sourceCellIndex, int sourceCubeVertNum, Glade::Vector3i &targetCellIndex)
+{
+  Glade::Vector3i adjacencyKey(targetCellIndex);
+  adjacencyKey.subtract(sourceCellIndex);
+  auto adj = cubeAdjacencyMap.find(adjacencyKey);
+  
+  if (adj == cubeAdjacencyMap.end())
+    return false;
+  
+  auto& adjList = adj->second;
+  return (*adjList)[sourceCubeVertNum] >= 0;
+}
+*/
+
 bool Grid::doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord)
 {
   std::vector<float> shift = { -cellSize / 2, cellSize / 2 };

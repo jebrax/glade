@@ -44,6 +44,7 @@ public:
   void add(const Vector3i &vector) { x += vector.x; y += vector.y; z += vector.z; }
   int dot(const Vector3i &vector) { return x * vector.x + y * vector.y + z * vector.z; }
   void add(const Vector3i &vector, Vector3i &result) { result.x = x + vector.x; result.y = y + vector.y; result.z = z + vector.z; }
+  void subtract(const Vector3i &vector) { x -= vector.x; y -= vector.y; z -= vector.z; }
 
   bool operator==(const Vector3i &rhs) const {
     return (x == rhs.x && y == rhs.y && z == rhs.z);

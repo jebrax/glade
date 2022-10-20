@@ -64,11 +64,6 @@ void AdvancedMeshGenerator::faceNormalFromThreeVertices(const Glade::Vector3f &a
 
 void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel, bool regenerate, FunctionType type)
 {
-  Glade::Vector3f translateFinalVertices;
-  if (type == CENTER_CELL_ONLY) {
-    translateFinalVertices.set(-grid.chunkSizeCells * grid.cellSize / 2, -Grid::CHUNK_HEIGHT  * grid.cellSize / 2, -grid.chunkSizeCells * grid.cellSize / 2);
-  }
-
   mesh.erase();
   int ifirst = chunkIndex.x * grid.chunkSizeCells;
   int kfirst = chunkIndex.y * grid.chunkSizeCells;
@@ -106,16 +101,12 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
                 );
                 break;
               case CENTER_CELL_ONLY:
-                cell.val[cubeVertNum] = singleCube(
-                  cell.p[cubeVertNum].x + xstart,
-                  cell.p[cubeVertNum].y,
-                  cell.p[cubeVertNum].z + zstart,
-                  grid
-                );
+                Glade::Vector3i centerCellIndex(ifirst + grid.chunkSizeCells / 2, Grid::CHUNK_HEIGHT / 2, kfirst + grid.chunkSizeCells / 2);
+                //bool inTheCenter = grid.doesCubeVertBelongInTheCell(cellIndex, cubeVertNum, centerCellIndex);
+                bool inTheCenter = grid.doesCubeVertBelongInTheCell(cell.p[cubeVertNum].x, cell.p[cubeVertNum].y, cell.p[cubeVertNum].z, centerCellIndex);
+                cell.val[cubeVertNum] = inTheCenter ? 0.1 : 0.8;
                 break;
             }
-
-            //log("Noise value: %f", cell.val[cubeVertNum]);
           }
         }
 
@@ -169,9 +160,9 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
           for (int coordi = 0; coordi < 3; coordi++) {
             // position
             Glade::Vector3f &v = vertlist[MarchingCubesTables::triTable[cubeindex][i + coordi]];
-            mesh.vertices.push_back(v.x + translateFinalVertices.x);
-            mesh.vertices.push_back(v.y + translateFinalVertices.y);
-            mesh.vertices.push_back(v.z + translateFinalVertices.z);
+            mesh.vertices.push_back(v.x);
+            mesh.vertices.push_back(v.y);
+            mesh.vertices.push_back(v.z);
 
             Glade::Vector3f normal;
             mesh.vertices.push_back(faceNormal.x);
