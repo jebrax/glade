@@ -38,6 +38,21 @@ public:
   {
   }
 
+  void reset()
+  {
+    invertor = 1;
+    thirdPerson = false;
+    position->x = 0.0;
+    position->y = 0.0;
+    position->z = 0.0;
+    rotation->x = 0.0;
+    rotation->y = 0.0;
+    rotation->z = 0.0;
+    scale->x = 1.0;
+    scale->y = 1.0;
+    scale->z = 1.0;
+  }
+
   SharedVector getScale   (void) const { return scale;    }
   SharedVector getPosition(void) const { return position; }
   SharedVector getRotation(void) const { return rotation; }
@@ -76,6 +91,8 @@ public:
    * Комбинирует два трансформа так, что их переносы и повороты складываются, а скейлы перемножаются
    */
   static void combine(const Transform &baseTransform, const Transform &relativeTransform, bool preservePosition, bool preserveRotation, bool preserveScale, Transform &resultTransform) {
+    resultTransform.reset();
+
     if (preservePosition) {
       resultTransform.getPosition()->set(*relativeTransform.getPosition());
     } else {
@@ -91,7 +108,8 @@ public:
     if (preserveScale) {
       resultTransform.getScale()->set(*relativeTransform.getScale());
     } else {
-      // ..
+      resultTransform.getScale()->set(*baseTransform.getScale());
+      resultTransform.getScale()->multiply(*relativeTransform.getScale());
     }
   }
   

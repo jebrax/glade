@@ -710,7 +710,7 @@ void Glade::Renderer::switchProjectionMode(ProjectionMode projectionMode, bool f
         glDisable(GL_DEPTH_TEST);
         break;
       case PERSPECTIVE:
-        Matrix::perspectiveM(projectionMatrix, 0, 45, aspectRatio, 1, 150);
+        Matrix::perspectiveM(projectionMatrix, 0, 45, aspectRatio, 0.1, 150);
         glEnable(GL_DEPTH_TEST);
         break;
       default: ;

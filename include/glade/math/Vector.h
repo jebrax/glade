@@ -86,6 +86,12 @@ public:
     y *= scalar;
     z *= scalar;
   }
+
+  void multiply(const Vector3f &other) {
+    x *= other.x;
+    y *= other.y;
+    z *= other.z;
+  }
  
   void cross(const Vector3f &vector, Vector3f &result)
   {
