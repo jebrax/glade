@@ -82,7 +82,7 @@ struct Grid
       GladeObject *chunkEntity;
   };
 
-  Grid(int chunkSizeCells, float cellSize, int gridSizeChunks);
+  Grid(int chunkSizeCells, float cellSize);
 
   Cell& getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate = false);
   void addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder);
@@ -97,21 +97,25 @@ struct Grid
   Glade::Vector3i getCellForPoint(const Glade::Vector3f &point) const;
 
   void addChunk(int i, int j, GladeObject* obj) {
-    Glade::Vector2i chunkIndex(i, j);
+    return addChunk(Glade::Vector2i(i, j), obj);
+  }
+
+  void addChunk(const Glade::Vector2i &chunkIndex, GladeObject* obj) {
     chunks.emplace(chunkIndex, obj);
   }
 
+
   GladeObject* getChunk(int i, int j) {
-    auto chunki = chunks.find(Glade::Vector2i(i, j));
+    return getChunk(Glade::Vector2i(i, j));
+  }
+
+  GladeObject* getChunk(const Glade::Vector2i &chunkIndex) {
+    auto chunki = chunks.find(chunkIndex);
 
     if (chunki == chunks.end())
       return nullptr;
 
     return chunki->second;
-  }
-
-  int getGridSizeChunks() {
-    return gridSizeChunks;
   }
 
   typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
@@ -129,8 +133,5 @@ struct Grid
   Chunks chunks;
 
   AdjacencyMap cubeAdjacencyMap;
-
-  private:
-    int gridSizeChunks;
 };
 

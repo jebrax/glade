@@ -2,7 +2,7 @@
 
 #include <glade/debug/log.h>
 
-Grid::Grid(int chunkSizeCells, float cellSize, int gridSizeChunks): chunkSizeCells(chunkSizeCells), cellSize(cellSize), gridSizeChunks(gridSizeChunks)
+Grid::Grid(int chunkSizeCells, float cellSize): chunkSizeCells(chunkSizeCells), cellSize(cellSize)
 {
   chunkSizeCoords = cellSize * chunkSizeCells;
 
