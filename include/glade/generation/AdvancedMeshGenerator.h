@@ -29,4 +29,6 @@ class AdvancedMeshGenerator
   private:
     Glade::Vector3f VertexInterp(float isolevel, const Glade::Vector3f &p1, const Glade::Vector3f &p2, float valp1, float valp2);
     void faceNormalFromThreeVertices(const Glade::Vector3f &a, const Glade::Vector3f &b, const Glade::Vector3f &c, Glade::Vector3f &result);
+
+    void addCellToTheMesh(const Glade::Vector3i &cellIndex, Grid &grid, float isolevel, Glade::Mesh &mesh, int &index, bool regenerate);
 };

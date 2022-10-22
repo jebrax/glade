@@ -64,7 +64,6 @@ void AdvancedMeshGenerator::faceNormalFromThreeVertices(const Glade::Vector3f &a
 
 void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel, bool regenerate, FunctionType type)
 {
-  mesh.erase();
   int ifirst = chunkIndex.x * grid.chunkSizeCells;
   int kfirst = chunkIndex.y * grid.chunkSizeCells;
 
@@ -72,6 +71,31 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
   float zstart = kfirst * grid.cellSize;
   log("Chunk (%d, %d) | xstart: %f, zstart: %f", chunkIndex.x, chunkIndex.y, xstart, zstart);
 
+  // Generate heightmap for ISOSURFACE_HEIGHTMAP first
+  std::unordered_map<Glade::Vector3i, float> heightMap;
+
+  for (int i = 0; i < grid.chunkSizeCells; i++) {
+    for (int k = 0; k < grid.chunkSizeCells; k++) {
+      float x = i * grid.cellSize;
+      float z = k * grid.cellSize;
+
+      Glade::Vector3i cellIndex(ifirst + i, 0, kfirst + k);
+      Grid::Cell &cell = grid.getOrCreateCell(cellIndex);
+
+      Glade::Vector3i heightMapKey;
+      for (int cubeVertNum = 0; cubeVertNum < 4; ++cubeVertNum) {
+        heightMapKey.x = cellIndex.x;
+        heightMapKey.z = cellIndex.z;
+        heightMapKey.y = cubeVertNum;
+
+        float heightNoiseValue = heightFunction4(cell.p[cubeVertNum].x + xstart, cell.p[cubeVertNum].z + zstart);
+
+        heightMap[heightMapKey] = heightNoiseValue;
+      }
+    }
+  }
+
+  mesh.erase();
   int index = 0;
 
   for (int i = 0; i < grid.chunkSizeCells; i++) {
@@ -87,26 +111,37 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         // If regenerate is false it means that vertices are there, but they were altered by other means.
         // In this case we don't want to generate new vertices, but we must recalculate normals
         if (regenerate) {
-          for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
-            switch (type) {
-              case ISOSURFACE_NOISE_3D:
+          switch (type) {
+            case ISOSURFACE_NOISE_3D:
+              for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
                 cell.val[cubeVertNum] = noise3D(cell.p[cubeVertNum].x * 0.04, cell.p[cubeVertNum].y * 0.04, cell.p[cubeVertNum].z * 0.04);
-                break;
-              case ISOSURFACE_HEIGHTMAP:
-                cell.val[cubeVertNum] = isosurfaceHeightMap(
-                  cell.p[cubeVertNum].x + xstart,
+              }
+              break;
+            case ISOSURFACE_HEIGHTMAP:
+              for (int cubeVertNum = 0; cubeVertNum < 4; cubeVertNum++) {
+                Glade::Vector3i heightMapKey(cellIndex.x, cubeVertNum, cellIndex.z);
+                float heightNoiseValue = heightMap[heightMapKey];
+                cell.val[cubeVertNum] = isosurfaceFromHeightMap(
                   cell.p[cubeVertNum].y,
-                  cell.p[cubeVertNum].z + zstart,
+                  heightNoiseValue,
                   Grid::CHUNK_HEIGHT
                 );
-                break;
-              case CENTER_CELL_ONLY:
+
+                cell.val[cubeVertNum + 4] = isosurfaceFromHeightMap(
+                  cell.p[cubeVertNum + 4].y,
+                  heightNoiseValue,
+                  Grid::CHUNK_HEIGHT
+                );
+              }
+              break;
+            case CENTER_CELL_ONLY:
+              for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
                 Glade::Vector3i centerCellIndex(ifirst + grid.chunkSizeCells / 2, Grid::CHUNK_HEIGHT / 2, kfirst + grid.chunkSizeCells / 2);
                 //bool inTheCenter = grid.doesCubeVertBelongInTheCell(cellIndex, cubeVertNum, centerCellIndex);
                 bool inTheCenter = grid.doesCubeVertBelongInTheCell(cell.p[cubeVertNum].x, cell.p[cubeVertNum].y, cell.p[cubeVertNum].z, centerCellIndex);
                 cell.val[cubeVertNum] = inTheCenter ? 0.1 : 0.8;
-                break;
-            }
+              }
+              break;
           }
         }
 

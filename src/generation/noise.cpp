@@ -47,15 +47,20 @@ float noise3D(float x, float y, float z)
   return 1.0 * perlin.octave3D_01((x * freq), (y * freq), (z * freq), 8);
 }
 
-float isosurfaceHeightMap(float x, float y, float z, float maxHeightMeters)
+float heightFunction4(float x, float z)
 {
   float wavelength = 20.0;
   int octaves = 6;
   float noise = perlin.octave2D_01(x / wavelength, z / wavelength, octaves);
   noise = std::pow(noise, 4.0);
+  return noise;
+}
+
+float isosurfaceFromHeightMap(float y, float heightValue, float maxHeightMeters)
+{
   float maxY = maxHeightMeters * ONE_METER_COORDS;
-  noise *= maxY;
-  return (y - noise + maxY) / (2 * maxY);
+  heightValue *= maxY;
+  return (y - heightValue + maxY) / (2 * maxY);
 }
 
 void perlinTest()
