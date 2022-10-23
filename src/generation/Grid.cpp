@@ -150,7 +150,6 @@ void Grid::getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::
 
 void Grid::getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result)
 {
-  assert(false && "test me pls");
   result.clear();
 
   int ichunk = cellIndex.x / chunkSizeCells;

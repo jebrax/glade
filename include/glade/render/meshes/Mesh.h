@@ -18,8 +18,8 @@ namespace Glade {
       typedef std::vector<float> Vertices;
       typedef Vertices::iterator VerticesI;
 
-      typedef std::vector<unsigned short> Indices;
-      typedef Indices::iterator           IndicesI;
+      typedef std::vector<uint32_t> Indices;
+      typedef Indices::iterator     IndicesI;
 
       short int vertexVboId, indexVboId, vaoId;
       Vertices vertices;
@@ -32,7 +32,7 @@ namespace Glade {
         return vertices.data();
       }
 
-      virtual unsigned short* getIndices()
+      virtual uint32_t* getIndices()
       {
         return indices.data();
       }

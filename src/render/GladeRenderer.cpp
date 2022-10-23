@@ -339,7 +339,7 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Mesh> mesh)
   // Loading data into VBOs
   bindBuffers(mesh.get());
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->getVertexBufferSize(), mesh->getVertices(), GL_DYNAMIC_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * mesh->getIndexBufferSize(), mesh->getIndices(), GL_DYNAMIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh->getIndexBufferSize(), mesh->getIndices(), GL_DYNAMIC_DRAW);
   bindBuffers(0);
 
   // Creating VAO
@@ -618,7 +618,7 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  glDrawElements(GL_TRIANGLES, (*di)->getMesh()->getIndexBufferSize(), GL_UNSIGNED_SHORT, 0);
+  glDrawElements(GL_TRIANGLES, (*di)->getMesh()->getIndexBufferSize(), GL_UNSIGNED_INT, 0);
   
   if (firstCycle) {
     checkGLError();

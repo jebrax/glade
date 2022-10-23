@@ -29,9 +29,9 @@ namespace Glade {
         return vertices;
       }
 
-      virtual unsigned short* getIndices()
+      virtual uint32_t* getIndices()
       {
-        static unsigned short indices[] = {
+        static uint32_t indices[] = {
           2, 1, 0,
           2, 0, 3,
         };
