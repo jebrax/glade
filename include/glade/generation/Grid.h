@@ -13,14 +13,14 @@ struct Grid
 
   struct Cell
   {
-    Cell(const Glade::Vector3i& cellIndexInsideChunk, float cellSize, GladeObject *chunkEntity):
+    Cell(const Glade::Vector3i& relativeCellIndex, float cellSize, GladeObject *chunkEntity):
       startingVertexIndex(-1),
       numVertices(-1),
       chunkEntity(chunkEntity)
     {
-      float x = cellIndexInsideChunk.x * cellSize;
-      float y = cellIndexInsideChunk.y * cellSize;
-      float z = cellIndexInsideChunk.z * cellSize;
+      float x = relativeCellIndex.x * cellSize;
+      float y = relativeCellIndex.y * cellSize;
+      float z = relativeCellIndex.z * cellSize;
 
       for (int i = 0; i < 8; ++i) {
         val[i] = 0.6;
@@ -89,12 +89,21 @@ struct Grid
   void setValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float val);
   void addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index = -1);
   void setValueAtCell(const Glade::Vector3i &centralCellIndex, float value, int cube_vert_index = -1);
-  void getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::Vector3f p[]);
-  std::pair<Glade::Vector2i, Glade::Vector3i> getCellIndexByCoords(const Glade::Vector3f &coords) const;
-  void getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result);
-  bool doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord);
+
+  // conversion functions
   int coordToCellCoord(float coord) const;
-  Glade::Vector3i getCellForPoint(const Glade::Vector3f &point) const;
+  int cellCoordToChunkCoord(int cellCoord) const;
+  Glade::Vector3i pointToCellIndex(const Glade::Vector3f &point) const;
+  Glade::Vector2i cellIndexToChunkIndex(const Glade::Vector3i &cellIndex) const;
+  Glade::Vector3f chunkPoint(const Glade::Vector2i &chunkIndex) const;
+  int relativeCellCoord(int absoluteCellCoord) const;
+  Glade::Vector3i absoluteCellIndex(const Glade::Vector3i &relativeCellIndex, const Glade::Vector2i &chunkIndex) const;
+  Glade::Vector3f relativeCellPoint(const Glade::Vector3i &relativeCellIndex) const;
+  Glade::Vector3i chunkCenterCellIndex(const Glade::Vector2i &chunkIndex) const;
+
+  void getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result);
+  void getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::Vector3f p[]);
+  bool doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord);
 
   void addChunk(int i, int j, GladeObject* obj) {
     return addChunk(Glade::Vector2i(i, j), obj);

@@ -45,13 +45,13 @@ Grid::Cell& Grid::getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCr
   }
 
   if (forceCreate) {
-    Glade::Vector2i chunkIndex(cellIndex.x / chunkSizeCells, cellIndex.z / chunkSizeCells);
+    Glade::Vector2i chunkIndex = cellIndexToChunkIndex(cellIndex);
     ChunksI chunki = chunks.find(chunkIndex);
     assert(chunki != chunks.end() && "Tried to access nonexistent terrain chunk");
     GladeObject *chunkEntity = chunki->second;
-    Glade::Vector3i cellIndexInsideChunk(cellIndex.x % chunkSizeCells, cellIndex.y, cellIndex.z % chunkSizeCells);
+    Glade::Vector3i relativeCellIndex(relativeCellCoord(cellIndex.x), cellIndex.y, relativeCellCoord(cellIndex.z));
 
-    i = cells.emplace(cellIndex, Cell(cellIndexInsideChunk, cellSize, chunkEntity)).first;
+    i = cells.emplace(cellIndex, Cell(relativeCellIndex, cellSize, chunkEntity)).first;
   }
 
   return i->second;
@@ -148,20 +148,9 @@ void Grid::getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::
   p[7].y += cellSize; p[7].z += cellSize;
 }
 
-std::pair<Glade::Vector2i, Glade::Vector3i> Grid::getCellIndexByCoords(const Glade::Vector3f &coords) const
-{
-  int ichunk = coords.x / chunkSizeCoords;
-  int jchunk = coords.z / chunkSizeCoords;
-  float xchunkstart = ichunk * chunkSizeCoords;
-  float zchunkstart = jchunk * chunkSizeCoords;
-
-  Glade::Vector3i cellIndex(coords.x / cellSize, coords.y / cellSize, coords.z / cellSize);
-
-  return std::pair<Glade::Vector2i, Glade::Vector3i>(Glade::Vector2i(ichunk, jchunk), cellIndex);
-}
-
 void Grid::getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result)
 {
+  assert(false && "test me pls");
   result.clear();
 
   int ichunk = cellIndex.x / chunkSizeCells;
@@ -170,19 +159,19 @@ void Grid::getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade
   int chunkxmod = 0;
   int chunkymod = 0;
 
-  //log("Digged chunk (%d, %d)", ichunk, jchunk);
-  //log("Digged cell (%d, %d)", cellIndex.x, cellIndex.z);
+  int xmod = cellIndex.x % chunkSizeCells;
+  int zmod = cellIndex.z % chunkSizeCells;
 
-  if (cellIndex.x % chunkSizeCells == 0)
+  if (xmod == 0)
     chunkxmod = -1;
 
-  if (cellIndex.x % chunkSizeCells == (chunkSizeCells - 1))
+  if ((xmod == chunkSizeCells - 1) || (xmod == -1))
     chunkxmod = +1;
 
-  if (cellIndex.z % chunkSizeCells == 0)
+  if (zmod == 0)
     chunkymod = -1;
 
-  if (cellIndex.z % chunkSizeCells == (chunkSizeCells - 1))
+  if ((zmod == chunkSizeCells - 1) || (zmod == -1))
     chunkymod = +1;
 
   if (chunkxmod)
@@ -197,12 +186,75 @@ void Grid::getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade
 
 int Grid::coordToCellCoord(float coord) const
 {
-  return (int) (coord / cellSize);
+  return std::floorf(coord / cellSize);
 }
 
-Glade::Vector3i Grid::getCellForPoint(const Glade::Vector3f &point) const
+int Grid::cellCoordToChunkCoord(int cellCoord) const
+{
+  if (cellCoord >= 0) {
+    return cellCoord / chunkSizeCells;
+  } else {
+    return ((cellCoord + 1) / chunkSizeCells) - 1;
+  }
+}
+
+Glade::Vector2i Grid::cellIndexToChunkIndex(const Glade::Vector3i &cellIndex) const
+{
+  return Glade::Vector2i(cellCoordToChunkCoord(cellIndex.x), cellCoordToChunkCoord(cellIndex.z));
+}
+
+Glade::Vector3i Grid::pointToCellIndex(const Glade::Vector3f &point) const
 {
   return Glade::Vector3i(coordToCellCoord(point.x), coordToCellCoord(point.y), coordToCellCoord(point.z));
+}
+
+Glade::Vector3f Grid::chunkPoint(const Glade::Vector2i &chunkIndex) const
+{
+  Glade::Vector3f result;
+  result.x = chunkIndex.x * chunkSizeCells * cellSize;
+  result.y = 0;
+  result.z = chunkIndex.y * chunkSizeCells * cellSize;
+
+  return result;
+}
+
+int Grid::relativeCellCoord(int absoluteCellCoord) const
+{
+  if (absoluteCellCoord >= 0)
+    return absoluteCellCoord % chunkSizeCells; 
+  else
+    return chunkSizeCells + absoluteCellCoord % chunkSizeCells;
+}
+
+Glade::Vector3i Grid::absoluteCellIndex(const Glade::Vector3i &relativeCellIndex, const Glade::Vector2i &chunkIndex) const
+{
+  Glade::Vector3i result;
+
+  result.x = chunkIndex.x * chunkSizeCells + relativeCellIndex.x;
+  result.y = relativeCellIndex.y;
+  result.z = chunkIndex.y * chunkSizeCells + relativeCellIndex.z;
+
+  return result;
+}
+
+Glade::Vector3f Grid::relativeCellPoint(const Glade::Vector3i &relativeCellIndex) const
+{
+  Glade::Vector3f result;
+  result.x = relativeCellIndex.x * cellSize;
+  result.y = relativeCellIndex.y * cellSize;
+  result.z = relativeCellIndex.z * cellSize;
+
+  return result;
+}
+
+Glade::Vector3i Grid::chunkCenterCellIndex(const Glade::Vector2i &chunkIndex) const
+{
+  Glade::Vector3i result;
+  result.x = chunkSizeCells / 2 + chunkIndex.x * chunkSizeCells;
+  result.y = CHUNK_HEIGHT / 2;
+  result.z = chunkSizeCells / 2 + chunkIndex.y * chunkSizeCells;
+
+  return result;
 }
 
 /* // looks like this is a better approach but some points get broken
@@ -228,7 +280,7 @@ bool Grid::doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3
     for (float yshift: shift) {
       for (float zshift: shift) {
         Glade::Vector3f checkingPoint(x + xshift, y + yshift, z + zshift);
-        Glade::Vector3i checkingCellCoord = getCellForPoint(checkingPoint);
+        Glade::Vector3i checkingCellCoord = pointToCellIndex(checkingPoint);
         if (checkingCellCoord == cellCoord) {
           return true;
         }

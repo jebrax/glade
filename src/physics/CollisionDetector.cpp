@@ -58,13 +58,13 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
   // Broad phase (only kinematic shape (sphere or other simple) vs staticIsosurfaceCell is supported now)
   std::vector<Grid::Cell*> staticObjects;
 
-  Glade::Vector3i centerCellCoord = grid->getCellForPoint(*kinematicObj->getTransform()->position);
+  Glade::Vector3i centerCellIndex = grid->pointToCellIndex(*kinematicObj->getTransform()->position);
 
   for (int i = -1; i <= 1; i++) {
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
-        Glade::Vector3i cellCoord(centerCellCoord.x + i, centerCellCoord.y + j, centerCellCoord.z + k);
-        auto celli = grid->cells.find(cellCoord);
+        Glade::Vector3i cellIndex(centerCellIndex.x + i, centerCellIndex.y + j, centerCellIndex.z + k);
+        auto celli = grid->cells.find(cellIndex);
 
         if (celli == grid->cells.end()) {
           //log("No cell here");

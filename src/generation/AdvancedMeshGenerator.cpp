@@ -64,31 +64,28 @@ void AdvancedMeshGenerator::faceNormalFromThreeVertices(const Glade::Vector3f &a
 
 void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel, bool regenerate, FunctionType type)
 {
-  int ifirst = chunkIndex.x * grid.chunkSizeCells;
-  int kfirst = chunkIndex.y * grid.chunkSizeCells;
+  Glade::Vector3f chunkPoint = grid.chunkPoint(chunkIndex);
 
-  float xstart = ifirst * grid.cellSize;
-  float zstart = kfirst * grid.cellSize;
-  log("Chunk (%d, %d) | xstart: %f, zstart: %f", chunkIndex.x, chunkIndex.y, xstart, zstart);
+  log("Chunk (%d, %d) | xstart: %f, zstart: %f", chunkIndex.x, chunkIndex.y, chunkPoint.x, chunkPoint.z);
 
   // Generate heightmap for ISOSURFACE_HEIGHTMAP first
   std::unordered_map<Glade::Vector3i, float> heightMap;
 
   for (int i = 0; i < grid.chunkSizeCells; i++) {
     for (int k = 0; k < grid.chunkSizeCells; k++) {
-      float x = i * grid.cellSize;
-      float z = k * grid.cellSize;
+      Glade::Vector3i relativeCellIndex(i, 0, k);
+      Glade::Vector3i absoluteCellIndex = grid.absoluteCellIndex(relativeCellIndex, chunkIndex);
+      Glade::Vector3f relativeCellPoint = grid.relativeCellPoint(relativeCellIndex);
 
-      Glade::Vector3i cellIndex(ifirst + i, 0, kfirst + k);
-      Grid::Cell &cell = grid.getOrCreateCell(cellIndex);
+      Grid::Cell &cell = grid.getOrCreateCell(absoluteCellIndex);
 
       Glade::Vector3i heightMapKey;
       for (int cubeVertNum = 0; cubeVertNum < 4; ++cubeVertNum) {
-        heightMapKey.x = cellIndex.x;
-        heightMapKey.z = cellIndex.z;
+        heightMapKey.x = absoluteCellIndex.x;
+        heightMapKey.z = absoluteCellIndex.z;
         heightMapKey.y = cubeVertNum;
 
-        float heightNoiseValue = heightFunction4(cell.p[cubeVertNum].x + xstart, cell.p[cubeVertNum].z + zstart);
+        float heightNoiseValue = heightFunction4(cell.p[cubeVertNum].x + chunkPoint.x, cell.p[cubeVertNum].z + chunkPoint.z);
 
         heightMap[heightMapKey] = heightNoiseValue;
       }
@@ -101,12 +98,11 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
   for (int i = 0; i < grid.chunkSizeCells; i++) {
     for (int j = 0; j < Grid::CHUNK_HEIGHT; j++) {
       for (int k = 0; k < grid.chunkSizeCells; k++) {
-        float x = i * grid.cellSize;
-        float y = j * grid.cellSize;
-        float z = k * grid.cellSize;
+        Glade::Vector3i relativeCellIndex(i, j, k);
+        Glade::Vector3i absoluteCellIndex = grid.absoluteCellIndex(relativeCellIndex, chunkIndex);
+        Glade::Vector3f relativeCellPoint = grid.relativeCellPoint(relativeCellIndex);
 
-        Glade::Vector3i cellIndex(ifirst + i, j, kfirst + k);
-        Grid::Cell &cell = grid.getOrCreateCell(cellIndex, regenerate);
+        Grid::Cell &cell = grid.getOrCreateCell(absoluteCellIndex, regenerate);
 
         // If regenerate is false it means that vertices are there, but they were altered by other means.
         // In this case we don't want to generate new vertices, but we must recalculate normals
@@ -119,7 +115,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
               break;
             case ISOSURFACE_HEIGHTMAP:
               for (int cubeVertNum = 0; cubeVertNum < 4; cubeVertNum++) {
-                Glade::Vector3i heightMapKey(cellIndex.x, cubeVertNum, cellIndex.z);
+                Glade::Vector3i heightMapKey(absoluteCellIndex.x, cubeVertNum, absoluteCellIndex.z);
                 float heightNoiseValue = heightMap[heightMapKey];
                 cell.val[cubeVertNum] = isosurfaceFromHeightMap(
                   cell.p[cubeVertNum].y,
@@ -136,7 +132,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
               break;
             case CENTER_CELL_ONLY:
               for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
-                Glade::Vector3i centerCellIndex(ifirst + grid.chunkSizeCells / 2, Grid::CHUNK_HEIGHT / 2, kfirst + grid.chunkSizeCells / 2);
+                Glade::Vector3i centerCellIndex = grid.chunkCenterCellIndex(chunkIndex);
                 //bool inTheCenter = grid.doesCubeVertBelongInTheCell(cellIndex, cubeVertNum, centerCellIndex);
                 bool inTheCenter = grid.doesCubeVertBelongInTheCell(cell.p[cubeVertNum].x, cell.p[cubeVertNum].y, cell.p[cubeVertNum].z, centerCellIndex);
                 cell.val[cubeVertNum] = inTheCenter ? 0.1 : 0.8;
@@ -216,7 +212,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
 
         if (regenerate) {
           // PROBLEM: Adjancent cell cube vertices probably do not have a corresponding value! Use grid.setValueAtCell() but check it's implementation first
-          grid.cells.insert_or_assign(cellIndex, cell);
+          grid.cells.insert_or_assign(absoluteCellIndex, cell);
         }
       }
     }
