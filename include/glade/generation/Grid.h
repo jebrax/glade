@@ -82,6 +82,14 @@ struct Grid
       GladeObject *chunkEntity;
   };
 
+  typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
+  typedef Cells::iterator CellsI;
+  typedef std::unordered_map<Glade::Vector3i, std::vector<int>*> AdjacencyMap;
+  typedef AdjacencyMap::iterator AdjacencyMapI;
+
+  typedef std::unordered_map<Glade::Vector2i, GladeObject*> Chunks;
+  typedef Chunks::iterator ChunksI;
+
   Grid(int chunkSizeCells, float cellSize);
 
   Cell& getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate = false);
@@ -113,7 +121,6 @@ struct Grid
     chunks.emplace(chunkIndex, obj);
   }
 
-
   GladeObject* getChunk(int i, int j) {
     return getChunk(Glade::Vector2i(i, j));
   }
@@ -127,13 +134,15 @@ struct Grid
     return chunki->second;
   }
 
-  typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
-  typedef Cells::iterator CellsI;
-  typedef std::unordered_map<Glade::Vector3i, std::vector<int>*> AdjacencyMap;
-  typedef AdjacencyMap::iterator AdjacencyMapI;
+  void clear() {
+    cells.clear();
+    chunks.clear();
+  }
 
-  typedef std::unordered_map<Glade::Vector2i, GladeObject*> Chunks;
-  typedef Chunks::iterator ChunksI;
+  void walkChunks(const std::function<void(ChunksI &chunki)> &callback) {
+    for (ChunksI chunki = chunks.begin(); chunki != chunks.end(); chunki++)
+      callback(chunki);
+  }
 
   float chunkSizeCoords;
   float cellSize;

@@ -120,13 +120,15 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
                 cell.val[cubeVertNum] = isosurfaceFromHeightMap(
                   cell.p[cubeVertNum].y,
                   heightNoiseValue,
-                  Grid::CHUNK_HEIGHT
+                  Grid::CHUNK_HEIGHT * grid.cellSize,
+                  isolevel
                 );
 
                 cell.val[cubeVertNum + 4] = isosurfaceFromHeightMap(
                   cell.p[cubeVertNum + 4].y,
                   heightNoiseValue,
-                  Grid::CHUNK_HEIGHT
+                  Grid::CHUNK_HEIGHT * grid.cellSize,
+                  isolevel
                 );
               }
               break;
