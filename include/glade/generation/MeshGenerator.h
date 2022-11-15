@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glade/render/meshes/Mesh.h>
+#include <glade/generation/AdvancedMeshGenerator.h>
 
 namespace Glade {
   class Vector3f;
@@ -12,8 +13,8 @@ class MeshGenerator
     MeshGenerator();
 
     void generateHull(Glade::Mesh &mesh, float radius = 3.0, bool sphere = false);
-    void generatePlane(Glade::Mesh &mesh);
-    void generate(Glade::Mesh &mesh);
+    void generatePlane(Glade::Mesh &mesh, int meshSizeTiles);
+    void generate(Glade::Mesh &mesh, int meshSizeTiles, const std::vector<AdvancedMeshGenerator::TerrainGeneratorSettings> &settings);
 
   private:
     void extractVertexCoordsFromArray(int vertex_number, Glade::Mesh::Vertices &vertices, Glade::Vector3f &result);
@@ -26,5 +27,4 @@ class MeshGenerator
     static int const VERTEX_SIZE = 8;
 
     float        tileSize;
-    unsigned int meshSizeTiles;
 };

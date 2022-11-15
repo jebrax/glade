@@ -1,3 +1,4 @@
+#include "glade/generation/AdvancedMeshGenerator.h"
 #include <glade/generation/MeshGenerator.h>
 #include <glade/generation/noise.h>
 #include <glade/math/Vector.h>
@@ -5,8 +6,7 @@
 #include <cmath>
 
 MeshGenerator::MeshGenerator():
-  tileSize(0.3f),
-  meshSizeTiles(255)
+  tileSize(0.25f)
 {
 }
 
@@ -274,7 +274,7 @@ void MeshGenerator::generateHull(Glade::Mesh &mesh, float radius, bool sphere)
   }
 }
 
-void MeshGenerator::generatePlane(Glade::Mesh &mesh)
+void MeshGenerator::generatePlane(Glade::Mesh &mesh, int meshSizeTiles)
 {
   mesh.vertices.clear();
   mesh.indices.clear();
@@ -334,7 +334,7 @@ void MeshGenerator::generatePlane(Glade::Mesh &mesh)
   }
 }
 
-void MeshGenerator::generate(Glade::Mesh &mesh)
+void MeshGenerator::generate(Glade::Mesh &mesh, int meshSizeTiles, const std::vector<AdvancedMeshGenerator::TerrainGeneratorSettings> &settings)
 {
   mesh.vertices.clear();
   mesh.indices.clear();
@@ -348,7 +348,7 @@ void MeshGenerator::generate(Glade::Mesh &mesh)
   {
     x = i % meshSizeVertices;
     z = -i / meshSizeVertices;
-    y = heightFunction2(x, z);
+    y = heightFunction5(x, z, settings);
 
     // position
     mesh.vertices.push_back(x);

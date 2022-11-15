@@ -62,7 +62,7 @@ void AdvancedMeshGenerator::faceNormalFromThreeVertices(const Glade::Vector3f &a
   result.normalize();
 }
 
-void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel, bool regenerate, FunctionType type)
+void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, TerrainGeneratorSettings &settings)
 {
   Glade::Vector3f chunkPoint = grid.chunkPoint(chunkIndex);
 
@@ -85,7 +85,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         heightMapKey.z = absoluteCellIndex.z;
         heightMapKey.y = cubeVertNum;
 
-        float heightNoiseValue = heightFunction4(cell.p[cubeVertNum].x + chunkPoint.x, cell.p[cubeVertNum].z + chunkPoint.z);
+        float heightNoiseValue = heightFunction4(cell.p[cubeVertNum].x + chunkPoint.x, cell.p[cubeVertNum].z + chunkPoint.z, settings);
 
         heightMap[heightMapKey] = heightNoiseValue;
       }
@@ -102,12 +102,12 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         Glade::Vector3i absoluteCellIndex = grid.absoluteCellIndex(relativeCellIndex, chunkIndex);
         Glade::Vector3f relativeCellPoint = grid.relativeCellPoint(relativeCellIndex);
 
-        Grid::Cell &cell = grid.getOrCreateCell(absoluteCellIndex, regenerate);
+        Grid::Cell &cell = grid.getOrCreateCell(absoluteCellIndex, settings.regenerate);
 
         // If regenerate is false it means that vertices are there, but they were altered by other means.
         // In this case we don't want to generate new vertices, but we must recalculate normals
-        if (regenerate) {
-          switch (type) {
+        if (settings.regenerate) {
+          switch (settings.type) {
             case ISOSURFACE_NOISE_3D:
               for (int cubeVertNum = 0; cubeVertNum < 8; cubeVertNum++) {
                 cell.val[cubeVertNum] = noise3D(cell.p[cubeVertNum].x * 0.04, cell.p[cubeVertNum].y * 0.04, cell.p[cubeVertNum].z * 0.04);
@@ -121,14 +121,14 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
                   cell.p[cubeVertNum].y,
                   heightNoiseValue,
                   Grid::CHUNK_HEIGHT * grid.cellSize,
-                  isolevel
+                  settings.isolevel
                 );
 
                 cell.val[cubeVertNum + 4] = isosurfaceFromHeightMap(
                   cell.p[cubeVertNum + 4].y,
                   heightNoiseValue,
                   Grid::CHUNK_HEIGHT * grid.cellSize,
-                  isolevel
+                  settings.isolevel
                 );
               }
               break;
@@ -144,41 +144,41 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
         }
 
         int cubeindex = 0;
-        if (cell.val[0] < isolevel) cubeindex |= 1;
-        if (cell.val[1] < isolevel) cubeindex |= 2;
-        if (cell.val[2] < isolevel) cubeindex |= 4;
-        if (cell.val[3] < isolevel) cubeindex |= 8;
-        if (cell.val[4] < isolevel) cubeindex |= 16;
-        if (cell.val[5] < isolevel) cubeindex |= 32;
-        if (cell.val[6] < isolevel) cubeindex |= 64;
-        if (cell.val[7] < isolevel) cubeindex |= 128;
+        if (cell.val[0] < settings.isolevel) cubeindex |= 1;
+        if (cell.val[1] < settings.isolevel) cubeindex |= 2;
+        if (cell.val[2] < settings.isolevel) cubeindex |= 4;
+        if (cell.val[3] < settings.isolevel) cubeindex |= 8;
+        if (cell.val[4] < settings.isolevel) cubeindex |= 16;
+        if (cell.val[5] < settings.isolevel) cubeindex |= 32;
+        if (cell.val[6] < settings.isolevel) cubeindex |= 64;
+        if (cell.val[7] < settings.isolevel) cubeindex |= 128;
 
         Glade::Vector3f vertlist[12];
 
         if (MarchingCubesTables::edgeTable[cubeindex] & 1)
-          vertlist[0] = VertexInterp(isolevel, cell.p[0], cell.p[1], cell.val[0], cell.val[1]);
+          vertlist[0] = VertexInterp(settings.isolevel, cell.p[0], cell.p[1], cell.val[0], cell.val[1]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 2)
-          vertlist[1] = VertexInterp(isolevel, cell.p[1], cell.p[2], cell.val[1], cell.val[2]);
+          vertlist[1] = VertexInterp(settings.isolevel, cell.p[1], cell.p[2], cell.val[1], cell.val[2]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 4)
-          vertlist[2] = VertexInterp(isolevel, cell.p[2], cell.p[3], cell.val[2], cell.val[3]);
+          vertlist[2] = VertexInterp(settings.isolevel, cell.p[2], cell.p[3], cell.val[2], cell.val[3]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 8)
-          vertlist[3] = VertexInterp(isolevel, cell.p[3], cell.p[0], cell.val[3], cell.val[0]);
+          vertlist[3] = VertexInterp(settings.isolevel, cell.p[3], cell.p[0], cell.val[3], cell.val[0]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 16)
-          vertlist[4] = VertexInterp(isolevel, cell.p[4], cell.p[5], cell.val[4], cell.val[5]);
+          vertlist[4] = VertexInterp(settings.isolevel, cell.p[4], cell.p[5], cell.val[4], cell.val[5]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 32)
-          vertlist[5] = VertexInterp(isolevel, cell.p[5], cell.p[6], cell.val[5], cell.val[6]);
+          vertlist[5] = VertexInterp(settings.isolevel, cell.p[5], cell.p[6], cell.val[5], cell.val[6]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 64)
-          vertlist[6] = VertexInterp(isolevel, cell.p[6], cell.p[7], cell.val[6], cell.val[7]);
+          vertlist[6] = VertexInterp(settings.isolevel, cell.p[6], cell.p[7], cell.val[6], cell.val[7]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 128)
-          vertlist[7] = VertexInterp(isolevel, cell.p[7], cell.p[4], cell.val[7], cell.val[4]);
+          vertlist[7] = VertexInterp(settings.isolevel, cell.p[7], cell.p[4], cell.val[7], cell.val[4]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 256)
-          vertlist[8] = VertexInterp(isolevel, cell.p[0], cell.p[4], cell.val[0], cell.val[4]);
+          vertlist[8] = VertexInterp(settings.isolevel, cell.p[0], cell.p[4], cell.val[0], cell.val[4]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 512)
-          vertlist[9] = VertexInterp(isolevel, cell.p[1], cell.p[5], cell.val[1], cell.val[5]);
+          vertlist[9] = VertexInterp(settings.isolevel, cell.p[1], cell.p[5], cell.val[1], cell.val[5]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 1024)
-          vertlist[10] = VertexInterp(isolevel, cell.p[2], cell.p[6], cell.val[2], cell.val[6]);
+          vertlist[10] = VertexInterp(settings.isolevel, cell.p[2], cell.p[6], cell.val[2], cell.val[6]);
         if (MarchingCubesTables::edgeTable[cubeindex] & 2048)
-          vertlist[11] = VertexInterp(isolevel, cell.p[3], cell.p[7], cell.val[3], cell.val[7]);
+          vertlist[11] = VertexInterp(settings.isolevel, cell.p[3], cell.p[7], cell.val[3], cell.val[7]);
 
         cell.startingVertexIndex = index;
 
@@ -212,7 +212,7 @@ void AdvancedMeshGenerator::mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &
 
         cell.numVertices = index - cell.startingVertexIndex;
 
-        if (regenerate) {
+        if (settings.regenerate) {
           // PROBLEM: Adjancent cell cube vertices probably do not have a corresponding value! Use grid.setValueAtCell() but check it's implementation first
           grid.cells.insert_or_assign(absoluteCellIndex, cell);
         }

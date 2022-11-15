@@ -20,9 +20,19 @@ class AdvancedMeshGenerator
       CENTER_CELL_ONLY
     };
 
+    struct TerrainGeneratorSettings {
+      float wavelength = 10.0;
+      unsigned short octaves = 1.0;
+      float power = 1.0;
+      float isolevel = 0.5;
+      float maxHeight = 0.0;
+      FunctionType type = ISOSURFACE_HEIGHTMAP;
+      bool regenerate = true;
+    };
+
     AdvancedMeshGenerator() {}
 
-    void mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, float isolevel = 0.5, bool regenerate = true, FunctionType type = ISOSURFACE_HEIGHTMAP);
+    void mcGenChunk(const Glade::Vector2i &chunkIndex, Grid &grid, Glade::Mesh &mesh, TerrainGeneratorSettings &settings);
     // heightmap
     void generate(const std::function<void(Glade::Vector3i&, float, float, float, float)>& callback, int size);
 

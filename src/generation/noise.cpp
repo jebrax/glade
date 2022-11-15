@@ -1,3 +1,4 @@
+#include "glade/generation/AdvancedMeshGenerator.h"
 #include <glade/generation/noise.h>
 #include <glade/generation/Grid.h>
 #include <glade/debug/log.h>
@@ -6,6 +7,7 @@
 
 #include <cmath>
 #include <ctime>
+#include <random>
 
 static const float ONE_METER_COORDS = 1.0;
 
@@ -47,13 +49,25 @@ float noise3D(float x, float y, float z)
   return 1.0 * perlin.octave3D_01((x * freq), (y * freq), (z * freq), 8);
 }
 
-float heightFunction4(float x, float z)
+float heightFunction4(float x, float z, const AdvancedMeshGenerator::TerrainGeneratorSettings &settings)
 {
-  float wavelength = 14.0;
-  int octaves = 6;
-  float noise = perlin.octave2D_01(x / wavelength, z / wavelength, octaves);
-  noise = std::pow(noise, 4.0);
-  return noise;
+  float noise = perlin.octave2D_01(x / settings.wavelength, z / settings.wavelength, settings.octaves);
+  noise = std::pow(noise, settings.power);
+  return noise * settings.maxHeight;
+}
+
+float heightFunction5(float x, float z, const std::vector<AdvancedMeshGenerator::TerrainGeneratorSettings> &octaves)
+{
+  float noise = 0.0;
+
+  for (auto &settings: octaves) {
+    float octave = perlin.noise2D_01(x / settings.wavelength, z / settings.wavelength);
+    octave = std::pow(octave, settings.power);
+    octave *= settings.maxHeight;
+    noise += octave;
+  }
+
+  return std::clamp(noise, 0.0f, octaves[0].maxHeight);
 }
 
 float isosurfaceFromHeightMap(float y, float heightValue, float maxHeight, float isolevel)
