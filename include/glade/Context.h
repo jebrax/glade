@@ -11,6 +11,7 @@
 #include "ai/AiContainer.h"
 #include "Timer.h"
 #include "debug/log.h"
+#include "net/NetworkManager.h"
 #include "EventBus.h"
 
 class Context {
@@ -21,6 +22,7 @@ public:
   CollisionDetector *collisionDetector;
   Glade::EventBus eventBus;
   AiContainer aiContainer;
+  Glade::NetworkManager *networkManager;
 
   bool enableCollisionDetector, enableAiContainer;
 
@@ -32,7 +34,7 @@ private:
   std::queue<GladeObject*> objectsToRemove;
 
 public:
-  Context(Glade::Renderer* renderer):
+  Context(Glade::Renderer* renderer, bool server):
     renderer(renderer),
     enableCollisionDetector(true),
     enableAiContainer(true),
@@ -43,12 +45,14 @@ public:
     requestedState(nullptr),
     collisionDetector(new CollisionDetector(this)),
     physicsTimer(true),
-    controller(nullptr)
+    controller(nullptr),
+    networkManager(new Glade::NetworkManager(server))
   {
   }
 
   ~Context() {
     delete collisionDetector;
+    delete networkManager;
   }
 
   void requestStateChange(State* state, bool suspend = false) {
@@ -124,12 +128,12 @@ public:
     
     if (!objectsToAdd.empty()) {
       log("Context: new objects will be loaded");
-     
+
       while (!objectsToAdd.empty()) {
         addNow(objectsToAdd.front());
         objectsToAdd.pop();
       }
-      
+
       gladeObjectsListsChanged = true;
     }
 
@@ -138,6 +142,8 @@ public:
 
       if (enableCollisionDetector)
         getCollisionDetector()->detectAndResolveCollisions(physicsTimer.getDeltaTime());
+
+      networkManager->process();
     }
   }
 

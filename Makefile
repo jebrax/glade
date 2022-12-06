@@ -59,6 +59,10 @@ ${GLADE_BUILD_DIR}/generation/noise.o: src/generation/noise.cpp
 	mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -I${VENDOR}/PerlinNoise/include -c $< -o $@
 
+${GLADE_BUILD_DIR}/net/NetworkManager.o: src/net/NetworkManager.cpp
+	mkdir -p $(@D)
+	${CXX} ${CXXFLAGS} -I${VENDOR}/enet/include -c $< -o $@
+
 ${GLADE_BUILD_DIR}/render/GladeRenderer.o: src/render/GladeRenderer.cpp
 	mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -I${VENDOR}/glew/include -DGL_SILENCE_DEPRECATION -c $< -o $@

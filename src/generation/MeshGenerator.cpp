@@ -349,6 +349,7 @@ void MeshGenerator::generate(Glade::Mesh &mesh, int meshSizeTiles, const std::ve
     x = i % meshSizeVertices;
     z = -i / meshSizeVertices;
     y = heightFunction5(x, z, settings);
+    //y = heightFunction1(x, z);
 
     // position
     mesh.vertices.push_back(x);
