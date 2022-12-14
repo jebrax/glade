@@ -1,0 +1,438 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/ui/Widget.o",
+      "src/ui/Widget.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/ui/Widget.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/ui/Widget.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/ui/layout/Layout.o",
+      "src/ui/layout/Layout.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/ui/layout/Layout.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/ui/layout/Layout.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../freetype/include",
+      "-c",
+      "-o",
+      "build/glade/ui/font/FreetypeFont.o",
+      "src/ui/font/FreetypeFont.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/ui/font/FreetypeFont.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/ui/font/FreetypeFont.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../enet/include",
+      "-c",
+      "-o",
+      "build/glade/net/NetworkManager.o",
+      "src/net/NetworkManager.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/net/NetworkManager.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/net/NetworkManager.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/GladeObject.o",
+      "src/GladeObject.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/GladeObject.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/GladeObject.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/util/WavefrontObjReader.o",
+      "src/util/WavefrontObjReader.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/util/WavefrontObjReader.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/util/WavefrontObjReader.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/util/CSVReader.o",
+      "src/util/CSVReader.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/util/CSVReader.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/util/CSVReader.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/util/Path.o",
+      "src/util/Path.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/util/Path.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/util/Path.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/util/DesktopFileManager.o",
+      "src/util/DesktopFileManager.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/util/DesktopFileManager.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/util/DesktopFileManager.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../assimp/include",
+      "-I../freetype/include",
+      "-I../lodepng",
+      "-c",
+      "-o",
+      "build/glade/util/ResourceManager.o",
+      "src/util/ResourceManager.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/util/ResourceManager.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/util/ResourceManager.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/render/Perception.o",
+      "src/render/Perception.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/render/Perception.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/render/Perception.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../glew/include",
+      "-DGL_SILENCE_DEPRECATION",
+      "-c",
+      "-o",
+      "build/glade/render/GladeRenderer.o",
+      "src/render/GladeRenderer.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/render/GladeRenderer.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/render/GladeRenderer.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/math/globals.o",
+      "src/math/globals.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/math/globals.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/math/globals.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/math/Matrix.o",
+      "src/math/Matrix.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/math/Matrix.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/math/Matrix.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../libccd/src",
+      "-c",
+      "-o",
+      "build/glade/physics/IsosurfaceCellPhysicalObject.o",
+      "src/physics/IsosurfaceCellPhysicalObject.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/physics/IsosurfaceCellPhysicalObject.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/physics/IsosurfaceCellPhysicalObject.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../libccd/src",
+      "-c",
+      "-o",
+      "build/glade/physics/CollisionDetector.o",
+      "src/physics/CollisionDetector.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/physics/CollisionDetector.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/physics/CollisionDetector.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../libccd/src",
+      "-c",
+      "-o",
+      "build/glade/physics/SpherePhysicalObject.o",
+      "src/physics/SpherePhysicalObject.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/physics/SpherePhysicalObject.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/physics/SpherePhysicalObject.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-I../PerlinNoise/include",
+      "-c",
+      "-o",
+      "build/glade/generation/noise.o",
+      "src/generation/noise.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/generation/noise.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/generation/noise.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/generation/MeshGenerator.o",
+      "src/generation/MeshGenerator.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/generation/MeshGenerator.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/generation/MeshGenerator.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/generation/Grid.o",
+      "src/generation/Grid.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/generation/Grid.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/generation/Grid.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/generation/MarchingCubesTables.o",
+      "src/generation/MarchingCubesTables.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/generation/MarchingCubesTables.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/generation/MarchingCubesTables.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/generation/AdvancedMeshGenerator.o",
+      "src/generation/AdvancedMeshGenerator.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/generation/AdvancedMeshGenerator.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/generation/AdvancedMeshGenerator.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/debug/log.o",
+      "src/debug/log.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/debug/log.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/debug/log.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/glade/debug/crashHandler.o",
+      "src/debug/crashHandler.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/glade/src/debug/crashHandler.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/glade/debug/crashHandler.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-DGLADE_MACOS",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/lodepng/lodepng.o",
+      "../lodepng/lodepng.cpp"
+    ],
+    "directory": "/Users/jebrax/sourcery/sources/strug/deps/glade",
+    "file": "/Users/jebrax/sourcery/sources/strug/deps/lodepng/lodepng.cpp",
+    "output": "/Users/jebrax/sourcery/sources/strug/deps/glade/build/lodepng/lodepng.o"
+  }
+]

@@ -1,8 +1,11 @@
 #include <glade/net/NetworkManager.h>
+#include <glade/io/Stream.h>
+#include <glade/Context.h>
 #include <enet/enet.h>
 
 static ENetHost *serverHost = nullptr, *clientHost = nullptr;
 static ENetPeer *serverPeer = nullptr;
+unsigned int Glade::NetworkManager::nextUserId = 1;
 
 static std::set<ENetPeer*> clients;
 
@@ -12,43 +15,61 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
   enet_host_service((ENetHost*) host, &event, 0);
 
   switch (event.type) {
-    case ENET_EVENT_TYPE_CONNECT:
-      printf ("A new client connected from %x:%u.\n",
-              event.peer->address.host,
-              event.peer->address.port);
+    case ENET_EVENT_TYPE_CONNECT: {
+      if (mServer) {
+        log("A new peer connected from %x:%u.",
+            event.peer->address.host,
+            event.peer->address.port);
 
-      /* Store any relevant client information here. */
-      event.peer->data = (void*) "Player";
-      clients.insert(event.peer);
+        event.peer->data = (void *) "Player";
+        clients.insert(event.peer);
+
+        unsigned int newUserId = nextUserId++;
+        Glade::MemoryOutputStream stream;
+        stream.Write((unsigned int) MessaageType::LOGIN);
+        stream.Write(newUserId);
+        log("New user logged in with UID %d", newUserId);
+        mContext->GetCurrentState()->onUserLoggedIn(newUserId);
+
+        send(event.peer, stream.GetBuffer(), stream.GetBufferSize(), true);
+      }
+
       break;
+    }
+    case ENET_EVENT_TYPE_RECEIVE: {
+      /*
+      log("A packet of length %lu was received from %s on channel %u.",
+             event.packet->dataLength,
+             (char *) event.peer->data,
+             event.channelID);
+      */
 
-    case ENET_EVENT_TYPE_RECEIVE:
-      printf("A packet of length %lu was received from %s on channel %u.\n",
-              event.packet->dataLength,
-              (char*) event.peer->data,
-              event.channelID);
-
-      if (!server)
+      if (!mServer) {
         processIncomingData(event.packet->data, event.packet->dataLength);
+      }
 
-      /* Clean up the packet now that we're done using it. */
       enet_packet_destroy(event.packet);
       break;
+    }
+    case ENET_EVENT_TYPE_DISCONNECT: {
+      if (mServer) {
+        log("%s disconnected.", (char *) event.peer->data);
+        event.peer->data = nullptr;
+        clients.erase(event.peer);
+      } else {
+        log("Event disconnect, but we are the client");
+      }
 
-    case ENET_EVENT_TYPE_DISCONNECT:
-      printf ("%s disconnected.\n", (char*) event.peer->data);
-      /* Reset the peer's client information. */
-      event.peer->data = NULL;
-      clients.erase(event.peer);
       break;
-
+    }
     case ENET_EVENT_TYPE_NONE:
       break;
   }
 }
 
-Glade::NetworkManager::NetworkManager(bool server):
-  server(server)
+Glade::NetworkManager::NetworkManager(Context* context, bool server):
+  mContext(context),
+  mServer(server)
 {
   if (server)
     initServer();
@@ -64,6 +85,9 @@ Glade::NetworkManager::~NetworkManager()
 
 int Glade::NetworkManager::connectToServer(const char *host, unsigned int port)
 {
+  if (!initialized)
+    return 1;
+
   ENetAddress address;
   address.port = port;
 
@@ -81,8 +105,18 @@ int Glade::NetworkManager::connectToServer(const char *host, unsigned int port)
   return 0;
 }
 
-bool Glade::NetworkManager::sendToServer(const char *data, int length, bool reliable)
+bool Glade::NetworkManager::send(void *peer, const unsigned char *data, int length, bool reliable)
 {
+  ENetPacket* packet = enet_packet_create(data, length, 0);
+  enet_peer_send((ENetPeer *) peer, 0, packet);
+  return true;
+}
+
+bool Glade::NetworkManager::sendToServer(const unsigned char *data, int length, bool reliable)
+{
+  if (!initialized)
+    return false;
+
   ENetPacket* packet = enet_packet_create(data, length, 0);
   enet_peer_send(serverPeer, 0, packet);
   return true;
@@ -90,20 +124,20 @@ bool Glade::NetworkManager::sendToServer(const char *data, int length, bool reli
 
 void Glade::NetworkManager::process()
 {
-  if (server) {
-    // TODO: put many objects into one packet (as much as possible)
-    for (GladeObject* object: replicatedObjects) {
-      unsigned int size = object->serialize(nullptr, 0);
-      unsigned char *buffer = (unsigned char*) malloc(size);
+  if (!initialized)
+    return;
 
-      object->serialize(buffer, size);
+  if (mServer) {
+    // TODO: put many objects into one packet (as much as possible)
+    for (GladeObject* object: mReplicatedObjects) {
+      Glade::MemoryOutputStream stream;
+      stream.Write((unsigned int) MessaageType::OBJECT_REPLICA);
+      object->serialize(stream);
 
       for (ENetPeer *clientPeer: clients) {
-        ENetPacket* packet = enet_packet_create(buffer, size, 0);
+        ENetPacket* packet = enet_packet_create(stream.GetBuffer(), stream.GetBufferSize(), 0);
         enet_peer_send(clientPeer, 0, packet);
       }
-
-      free(buffer);
     }
 
     processNetworkEvents(serverHost);
@@ -115,7 +149,45 @@ void Glade::NetworkManager::process()
 
 void Glade::NetworkManager::processIncomingData(unsigned char *data, unsigned int size)
 {
-  GladeObject::unsearialize(data);
+  Glade::MemoryInputStream stream(data, size);
+  unsigned int messageType;
+  stream.Read(messageType);
+
+  switch ((MessaageType) messageType) {
+    case OBJECT_REPLICA: {
+      unsigned int receivedObjectId, receivedObjectTypeId;
+      stream.Read(receivedObjectId);
+      stream.Read(receivedObjectTypeId);
+
+      auto entry = GladeObject::indexById.find(receivedObjectId);
+      GladeObject *entity;
+      bool isNewEntity = (entry == GladeObject::indexById.end());
+
+      if (isNewEntity) {
+        log("Creating new entity");
+        entity = mContext->GetCurrentState()->CreateEntityByTypeId(receivedObjectTypeId);
+      } else {
+        entity = entry->second;
+      }
+
+      entity->unserialize(stream);
+
+      if (isNewEntity)
+        mContext->GetCurrentState()->onEntityReplicated(entity);
+
+      break;
+    }
+    case LOGIN: {
+      unsigned int userId;
+      stream.Read(userId);
+      log("Logged in with UID %d", userId);
+      mContext->GetCurrentState()->onUserLoggedIn(userId);
+      break;
+    }
+    default:
+      log("Warning: unexpected network message type received");
+      break;
+  }
 }
 
 int Glade::NetworkManager::initServer(unsigned int port)
@@ -125,9 +197,11 @@ int Glade::NetworkManager::initServer(unsigned int port)
   serverAddress.port = port;
   serverHost = enet_host_create(&serverAddress, 32, 2, 0, 0);
 
+  assert(serverHost);
   if (serverHost == nullptr)
     return 1;
 
+  initialized = true;
   return 0;
 }
 
@@ -135,9 +209,11 @@ int Glade::NetworkManager::initClient()
 {
   clientHost = enet_host_create(nullptr, 1, 2, 0, 0);
 
+  assert(clientHost);
   if (clientHost == nullptr)
     return 1;
 
+  initialized = true;
   return 0;
 }
 

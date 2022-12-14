@@ -1,7 +1,7 @@
 #pragma once
 
 #include <queue>
-#include <assert.h>
+#include <cassert>
 
 #include "render/GladeRenderer.h"
 #include "State.h"
@@ -46,7 +46,7 @@ public:
     collisionDetector(new CollisionDetector(this)),
     physicsTimer(true),
     controller(nullptr),
-    networkManager(new Glade::NetworkManager(server))
+    networkManager(new Glade::NetworkManager(this, server))
   {
   }
 
@@ -54,6 +54,8 @@ public:
     delete collisionDetector;
     delete networkManager;
   }
+
+  State *GetCurrentState() { return currentState; }
 
   void requestStateChange(State* state, bool suspend = false) {
     this->suspend = suspend;

@@ -6,7 +6,9 @@
 unsigned int GladeObject::nextObjectId = 0;
 std::unordered_map<unsigned int, GladeObject*> GladeObject::indexById;
 
-GladeObject::GladeObject(void):
+const unsigned int GladeObject::unusedEntityId = 0;
+
+GladeObject::GladeObject(const unsigned int *force_id):
   enabled(true),
   physicalObject(NULL),
   behavior(NULL),
@@ -14,9 +16,16 @@ GladeObject::GladeObject(void):
   behaviorEnabled(true),
   name("Undefined")
 {
-  id = nextObjectId++;
-  auto outcome = indexById.insert(std::pair<unsigned int, GladeObject*>(id, this));
-  assert(outcome.second && "Object ID clash occured (probably non-thread safe instantiations were made)");
+  if (force_id)
+    id = *force_id;
+  else
+    id = ++nextObjectId;
+
+  if (id != unusedEntityId) {
+    auto outcome = indexById.insert(std::pair<unsigned int, GladeObject*>(id, this));
+    assert(outcome.second && "Object ID clash occured (probably non-thread safe instantiations were made)");
+  }
+
   log("Creating object %d", id);
 }
 

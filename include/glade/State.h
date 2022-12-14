@@ -1,6 +1,7 @@
 #pragma once
 
 class Context;
+class GladeObject;
 
 class State
 {
@@ -16,6 +17,10 @@ class State
 
     virtual bool isSuspended() { return suspended; }
 
-  private:
+    virtual GladeObject* CreateEntityByTypeId(unsigned int type, const unsigned int *force_id = nullptr) = 0;
+    virtual void onEntityReplicated(GladeObject *entity) {};
+    virtual void onUserLoggedIn(unsigned int userId) {}
+
+private:
     bool suspended;
 };

@@ -35,14 +35,14 @@ void Widget::walkDepthFirstPrefix(Widget &widget, WalkFunctor &func)
 // End of tree functions
 
 
-Widget::Widget(Layout::Unique &layout): GladeObject(),
+Widget::Widget(Layout::Unique &layout): GladeObject(&GladeObject::unusedEntityId),
   focused(false),
   focusable(true)
 {
   setLayout(layout);
 }
 
-Widget::Widget(): GladeObject(),
+Widget::Widget(): GladeObject(&GladeObject::unusedEntityId),
   focused(false),
   focusable(true)
 {}

@@ -79,3 +79,4 @@ ass:
 clean:
 	rm -rf build
 
+.NOTPARALLEL:
