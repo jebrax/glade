@@ -9,9 +9,10 @@ namespace Glade
 {
   class NetworkManager
   {
-    enum MessaageType {
+    enum MessageType {
       LOGIN = 0,
       OBJECT_REPLICA,
+      CLIENT_INPUT,
       MESSAGE_TYPE_MAX
     };
 
@@ -31,8 +32,10 @@ namespace Glade
 
       int connectToServer(const char *host = DEFAULT_SERVER_HOST, unsigned int port = DEFAULT_SERVER_PORT);
       bool send(void *peer, const unsigned char *data, int length, bool reliable);
+      bool sendButtonToServer(unsigned int gladeKeyCode, bool isPressed);
       bool sendToServer(const unsigned char *data, int length, bool reliable = false);
       void process();
+      unsigned int getCurrentUserId() { return mCurrentUserId; }
 
     private:
       void processNetworkEvents(void *host);
@@ -42,7 +45,8 @@ namespace Glade
 
       Context *mContext;
       bool mServer;
-      bool initialized;
+      bool mInitialized;
+      unsigned int mCurrentUserId;
       std::set<GladeObject*> mReplicatedObjects;
   };
 }

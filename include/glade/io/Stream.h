@@ -51,10 +51,12 @@ namespace Glade {
       // POD only plz
       template<typename T>
       unsigned int Write(const T &data) { return Write(&data, sizeof(T)); };
+
       const unsigned char* GetBuffer() { return mBuffer; }
       const unsigned int GetBufferSize() { return mCapacity; }
+      const unsigned int GetWrittenSize() { return mTail; }
 
-    private:
+  private:
       unsigned int mCapacity, mTail;
       unsigned char *mBuffer;
   };

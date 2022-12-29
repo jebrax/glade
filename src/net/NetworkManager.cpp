@@ -26,12 +26,12 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
 
         unsigned int newUserId = nextUserId++;
         Glade::MemoryOutputStream stream;
-        stream.Write((unsigned int) MessaageType::LOGIN);
+        stream.Write((unsigned int) MessageType::LOGIN);
         stream.Write(newUserId);
         log("New user logged in with UID %d", newUserId);
         mContext->GetCurrentState()->onUserLoggedIn(newUserId);
 
-        send(event.peer, stream.GetBuffer(), stream.GetBufferSize(), true);
+        send(event.peer, stream.GetBuffer(), stream.GetWrittenSize(), true);
       }
 
       break;
@@ -44,9 +44,7 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
              event.channelID);
       */
 
-      if (!mServer) {
-        processIncomingData(event.packet->data, event.packet->dataLength);
-      }
+      processIncomingData(event.packet->data, event.packet->dataLength);
 
       enet_packet_destroy(event.packet);
       break;
@@ -69,7 +67,8 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
 
 Glade::NetworkManager::NetworkManager(Context* context, bool server):
   mContext(context),
-  mServer(server)
+  mServer(server),
+  mCurrentUserId(0)
 {
   if (server)
     initServer();
@@ -85,7 +84,7 @@ Glade::NetworkManager::~NetworkManager()
 
 int Glade::NetworkManager::connectToServer(const char *host, unsigned int port)
 {
-  if (!initialized)
+  if (!mInitialized)
     return 1;
 
   ENetAddress address;
@@ -114,7 +113,7 @@ bool Glade::NetworkManager::send(void *peer, const unsigned char *data, int leng
 
 bool Glade::NetworkManager::sendToServer(const unsigned char *data, int length, bool reliable)
 {
-  if (!initialized)
+  if (!mInitialized)
     return false;
 
   ENetPacket* packet = enet_packet_create(data, length, 0);
@@ -122,22 +121,32 @@ bool Glade::NetworkManager::sendToServer(const unsigned char *data, int length, 
   return true;
 }
 
+bool Glade::NetworkManager::sendButtonToServer(unsigned int gladeKeyCode, bool isPressed)
+{
+  Glade::MemoryOutputStream stream;
+  stream.Write((unsigned int) MessageType::CLIENT_INPUT);
+  stream.Write(gladeKeyCode);
+  stream.Write(isPressed);
+
+  sendToServer(stream.GetBuffer(), stream.GetWrittenSize());
+}
+
 void Glade::NetworkManager::process()
 {
-  if (!initialized)
+  if (!mInitialized)
     return;
 
   if (mServer) {
-    // TODO: put many objects into one packet (as much as possible)
-    for (GladeObject* object: mReplicatedObjects) {
-      Glade::MemoryOutputStream stream;
-      stream.Write((unsigned int) MessaageType::OBJECT_REPLICA);
-      object->serialize(stream);
+    Glade::MemoryOutputStream stream;
 
-      for (ENetPeer *clientPeer: clients) {
-        ENetPacket* packet = enet_packet_create(stream.GetBuffer(), stream.GetBufferSize(), 0);
-        enet_peer_send(clientPeer, 0, packet);
-      }
+    for (GladeObject* object: mReplicatedObjects) {
+      stream.Write((unsigned int) MessageType::OBJECT_REPLICA);
+      object->serialize(stream);
+    }
+
+    for (ENetPeer *clientPeer: clients) {
+      ENetPacket* packet = enet_packet_create(stream.GetBuffer(), stream.GetWrittenSize(), 0);
+      enet_peer_send(clientPeer, 0, packet);
     }
 
     processNetworkEvents(serverHost);
@@ -151,42 +160,75 @@ void Glade::NetworkManager::processIncomingData(unsigned char *data, unsigned in
 {
   Glade::MemoryInputStream stream(data, size);
   unsigned int messageType;
-  stream.Read(messageType);
 
-  switch ((MessaageType) messageType) {
-    case OBJECT_REPLICA: {
-      unsigned int receivedObjectId, receivedObjectTypeId;
-      stream.Read(receivedObjectId);
-      stream.Read(receivedObjectTypeId);
+  while (stream.GetUnreadSize() > 0) {
+    stream.Read(messageType);
 
-      auto entry = GladeObject::indexById.find(receivedObjectId);
-      GladeObject *entity;
-      bool isNewEntity = (entry == GladeObject::indexById.end());
+    switch ((MessageType) messageType) {
+      case OBJECT_REPLICA: {
+        if (mServer) {
+          log("Warning: recieved object replica message, but we are the server");
+          return;
+        }
 
-      if (isNewEntity) {
-        log("Creating new entity");
-        entity = mContext->GetCurrentState()->CreateEntityByTypeId(receivedObjectTypeId);
-      } else {
-        entity = entry->second;
+        unsigned int receivedObjectId, receivedObjectTypeId;
+        stream.Read(receivedObjectId);
+        stream.Read(receivedObjectTypeId);
+
+        auto entry = GladeObject::indexById.find(receivedObjectId);
+        //log("Received object: %d", receivedObjectId);
+        GladeObject *entity;
+        bool isNewEntity = (entry == GladeObject::indexById.end());
+
+        if (isNewEntity) {
+          log("Creating new entity");
+          entity = mContext->GetCurrentState()->CreateEntityByTypeId(receivedObjectTypeId);
+        } else {
+          entity = entry->second;
+        }
+
+        if (entity) {
+          entity->unserialize(stream);
+
+          if (isNewEntity)
+            mContext->GetCurrentState()->onEntityReplicated(entity);
+        } else {
+          log("Warning: tried to replicate an object of unexpected type id. Broken packet?");
+        }
+
+        break;
       }
+      case LOGIN: {
+        if (mServer) {
+          log("Warning: recieved login message, but we are the server");
+          return;
+        }
 
-      entity->unserialize(stream);
+        unsigned int userId;
+        stream.Read(userId);
+        mCurrentUserId = userId;
+        log("Logged in with UID %d", userId);
+        mContext->GetCurrentState()->onUserLoggedIn(userId);
+        break;
+      }
+      case CLIENT_INPUT: {
+        if (!mServer) {
+          log("Warning: recieved client input message, but we are the client");
+          return;
+        }
 
-      if (isNewEntity)
-        mContext->GetCurrentState()->onEntityReplicated(entity);
-
-      break;
+        unsigned int userId, gladeKeyCode;
+        bool isPressed;
+        stream.Read(userId);
+        stream.Read(gladeKeyCode);
+        stream.Read(isPressed);
+        mContext->GetCurrentState()->onClientInputReceived(userId, gladeKeyCode, isPressed);
+        break;
+      }
+      default:
+        log("Warning: unexpected network message type received");
+        break;
     }
-    case LOGIN: {
-      unsigned int userId;
-      stream.Read(userId);
-      log("Logged in with UID %d", userId);
-      mContext->GetCurrentState()->onUserLoggedIn(userId);
-      break;
-    }
-    default:
-      log("Warning: unexpected network message type received");
-      break;
   }
 }
 
@@ -201,7 +243,7 @@ int Glade::NetworkManager::initServer(unsigned int port)
   if (serverHost == nullptr)
     return 1;
 
-  initialized = true;
+  mInitialized = true;
   return 0;
 }
 
@@ -213,7 +255,7 @@ int Glade::NetworkManager::initClient()
   if (clientHost == nullptr)
     return 1;
 
-  initialized = true;
+  mInitialized = true;
   return 0;
 }
 
