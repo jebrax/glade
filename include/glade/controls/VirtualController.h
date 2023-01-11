@@ -45,34 +45,28 @@ class VirtualController
       return (keyState != keysState.end() && keyState->second);
     }
 
-    virtual bool buttonPress(Glade::Key controlId, int terminalId) {
+    bool updateState(Glade::Key controlId, int terminalId, bool isPressed)
+    {
       auto keyState = keysState.find(controlId);
       bool changedState = true;
 
       if (keyState == keysState.end()) {
-        keysState[controlId] = true;
+        keysState[controlId] = isPressed;
       } else {
-        changedState = !keyState->second;
-        keyState->second = true;
+        changedState = (keyState->second != isPressed);
+        keyState->second = isPressed;
       }
 
-      return changedState;
-    }
-
-    virtual bool buttonRelease(Glade::Key controlId, int terminalId) {
-      auto keyState = keysState.find(controlId);
-      bool changedState = true;
-
-      if (keyState == keysState.end()) {
-        keysState[controlId] = false;
-      } else {
-        changedState = keyState->second;
-        keyState->second = false;
+      if (changedState) {
+        if (isPressed)
+          buttonPress(controlId, terminalId);
+        else
+          buttonRelease(controlId, terminalId);
       }
-
-      return changedState;
     }
 
+    virtual bool buttonPress(Glade::Key controlId, int terminalId) = 0;
+    virtual bool buttonRelease(Glade::Key controlId, int terminalId) = 0;
     virtual bool pointerDown(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerUp(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerMove(float axisX, float axisY, float axisZ, int controlId, int terminalId, bool isAbsolute = true) = 0;

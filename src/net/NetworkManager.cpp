@@ -125,6 +125,7 @@ bool Glade::NetworkManager::sendButtonToServer(unsigned int gladeKeyCode, bool i
 {
   Glade::MemoryOutputStream stream;
   stream.Write((unsigned int) MessageType::CLIENT_INPUT);
+  stream.Write(mCurrentUserId);
   stream.Write(gladeKeyCode);
   stream.Write(isPressed);
 
