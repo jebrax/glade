@@ -158,7 +158,6 @@ public:
   }
 
   void setController(VirtualController &controller) {
-    controller.initController();
     this->controller = &controller;
   }
 

@@ -32,7 +32,7 @@ namespace Glade
 
       int connectToServer(const char *host = DEFAULT_SERVER_HOST, unsigned int port = DEFAULT_SERVER_PORT);
       bool send(void *peer, const unsigned char *data, int length, bool reliable);
-      bool sendButtonToServer(unsigned int gladeKeyCode, bool isPressed);
+      bool sendInputActionToServer(unsigned int inputAction, bool isPressed);
       bool sendToServer(const unsigned char *data, int length, bool reliable = false);
       void process();
       unsigned int getCurrentUserId() { return mCurrentUserId; }

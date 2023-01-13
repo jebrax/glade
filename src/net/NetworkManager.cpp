@@ -121,12 +121,12 @@ bool Glade::NetworkManager::sendToServer(const unsigned char *data, int length, 
   return true;
 }
 
-bool Glade::NetworkManager::sendButtonToServer(unsigned int gladeKeyCode, bool isPressed)
+bool Glade::NetworkManager::sendInputActionToServer(unsigned int inputAction, bool isPressed)
 {
   Glade::MemoryOutputStream stream;
   stream.Write((unsigned int) MessageType::CLIENT_INPUT);
   stream.Write(mCurrentUserId);
-  stream.Write(gladeKeyCode);
+  stream.Write(inputAction);
   stream.Write(isPressed);
 
   sendToServer(stream.GetBuffer(), stream.GetWrittenSize());

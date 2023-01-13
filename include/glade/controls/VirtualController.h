@@ -1,73 +1,90 @@
 #pragma once
 
+#include <glade/controls/KeyMapper.h>
+#include <glade/controls/Key.h>
 #include <unordered_map>
-
-namespace Glade {
-
-enum Key {
-  GLADE_KEY_W,
-  GLADE_KEY_S,
-  GLADE_KEY_A,
-  GLADE_KEY_D,
-  GLADE_KEY_SPACE,
-  GLADE_KEY_X,
-  GLADE_KEY_G,
-  GLADE_KEY_F,
-  GLADE_KEY_T,
-  GLADE_KEY_R,
-  GLADE_KEY_C,
-  GLADE_KEY_Q,
-  GLADE_KEY_E,
-  GLADE_KEY_LEFT,
-  GLADE_KEY_RIGHT,
-  GLADE_KEY_UP,
-  GLADE_KEY_DOWN,
-  GLADE_KEY_O,
-  GLADE_KEY_L,
-  GLADE_KEY_1,
-  GLADE_KEY_2,
-  GLADE_KEY_3,
-  GLADE_KEY_4,
-  GLADE_KEY_5,
-};
-
-}
 
 class VirtualController
 {
-  std::unordered_map<Glade::Key, bool> keysState;
-
   public:
-    virtual void initController() {};
+    VirtualController(): mKeyMapper(nullptr) {}
 
-    virtual bool isKeyPressed(Glade::Key controlId) {
-      auto keyState = keysState.find(controlId);
-      return (keyState != keysState.end() && keyState->second);
+    // takes ownership
+    void SetKeyMapper(Glade::KeyMapper *keyMapper)
+    {
+      if (mKeyMapper)
+        delete mKeyMapper;
+
+      mKeyMapper = keyMapper;
     }
 
-    bool updateState(Glade::Key controlId, int terminalId, bool isPressed)
+    virtual ~VirtualController()
     {
-      auto keyState = keysState.find(controlId);
+      if (mKeyMapper)
+        delete mKeyMapper;
+    }
+
+    virtual bool isKeyPressed(Glade::Key controlId) {
+      auto keyState = mKeysState.find(controlId);
+      return (keyState != mKeysState.end() && keyState->second);
+    }
+
+    virtual bool isActionPressed(unsigned int inputAction) {
+      auto inputActionState = mInputActionsState.find(inputAction);
+      return (inputActionState != mInputActionsState.end() && inputActionState->second);
+    }
+
+    bool UpdateKeyState(Glade::Key controlId, int terminalId, bool isPressed)
+    {
+      auto keyState = mKeysState.find(controlId);
       bool changedState = true;
 
-      if (keyState == keysState.end()) {
-        keysState[controlId] = isPressed;
+      if (keyState == mKeysState.end()) {
+        mKeysState[controlId] = isPressed;
       } else {
         changedState = (keyState->second != isPressed);
         keyState->second = isPressed;
       }
 
       if (changedState) {
-        if (isPressed)
-          buttonPress(controlId, terminalId);
-        else
-          buttonRelease(controlId, terminalId);
+        assert(mKeyMapper);
+        unsigned int inputAction = mKeyMapper->GetMappedAction(controlId);
+        UpdateInputActionState(inputAction, isPressed);
       }
+
+      return changedState;
     }
 
-    virtual bool buttonPress(Glade::Key controlId, int terminalId) = 0;
-    virtual bool buttonRelease(Glade::Key controlId, int terminalId) = 0;
+    bool UpdateInputActionState(unsigned int inputAction, bool isPressed)
+    {
+      auto inputActionState = mInputActionsState.find(inputAction);
+      bool changedState = true;
+
+      if (inputActionState == mInputActionsState.end()) {
+        mInputActionsState[inputAction] = isPressed;
+      } else {
+        changedState = (inputActionState->second != isPressed);
+        inputActionState->second = isPressed;
+      }
+
+      if (changedState) {
+        if (isPressed)
+          InputActionPress(inputAction, 0);
+        else
+          InputActionRelease(inputAction, 0);
+      }
+
+      return changedState;
+    }
+
+    virtual bool InputActionPress(unsigned int controlId, int terminalId) = 0;
+    virtual bool InputActionRelease(unsigned int controlId, int terminalId) = 0;
     virtual bool pointerDown(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerUp(float axisX, float axisY, float axisZ, int controlId, int terminalId) = 0;
     virtual bool pointerMove(float axisX, float axisY, float axisZ, int controlId, int terminalId, bool isAbsolute = true) = 0;
+
+private:
+  Glade::KeyMapper* mKeyMapper;
+  std::unordered_map<Glade::Key, bool> mKeysState;
+  std::unordered_map<unsigned int, bool> mInputActionsState;
 };
