@@ -1,0 +1,3 @@
+#pragma once
+
+#define GLADE_CONTROLS_MAX_LOCAL_ACTION_ID 1000
