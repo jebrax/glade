@@ -17,9 +17,10 @@ class State
 
     virtual bool isSuspended() { return suspended; }
 
-    virtual GladeObject* CreateEntityByTypeId(unsigned int type, const unsigned int *force_id = nullptr) = 0;
+    virtual GladeObject* CreateEntityByTypeId(unsigned int type, const unsigned int *force_id = nullptr, bool replicate = true) = 0;
     virtual void onClientInputReceived(unsigned int userId, unsigned int gladeKeyCode, bool isPressed) {}
     virtual void onEntityReplicated(GladeObject *entity) {}
+    virtual void onEntityUnserialized(GladeObject *entity) {}
     virtual void onUserLoggedIn(unsigned int userId) {}
 
 private:

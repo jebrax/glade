@@ -33,14 +33,45 @@ Grid::Grid(int chunkSizeCells, float cellSize): chunkSizeCells(chunkSizeCells), 
   cubeAdjacencyMap[Glade::Vector3i(-1, -1, 0)] = new std::vector<int>({   5,   -1,   -1,   6,   -1,   -1,   -1,   -1, });
   cubeAdjacencyMap[Glade::Vector3i(-1, -1, 1)] = new std::vector<int>({   -1,   -1,   -1,   5,   -1,   -1,   -1,   -1, });
   cubeAdjacencyMap[Glade::Vector3i(-1, -1, -1)] = new std::vector<int>({   6,   -1,   -1,   -1,   -1,   -1,   -1,   -1, });
+
+  pthread_mutex_init(&mCellsLock, nullptr);
+}
+
+Grid::~Grid()
+{
+  pthread_mutex_destroy(&mCellsLock);
+}
+
+Grid::Cell* Grid::getCell(const Glade::Vector3i& cellIndex) {
+  pthread_mutex_lock(&mCellsLock);
+
+  CellsI i = cells.find(cellIndex);
+
+  if (i == cells.end()) {
+    pthread_mutex_unlock(&mCellsLock);
+    return nullptr;
+  }
+
+  Cell* result = &i->second;
+  pthread_mutex_unlock(&mCellsLock);
+
+  return result;
+}
+
+void Grid::setCell(const Glade::Vector3i& cellIndex, const Grid::Cell& cell)
+{
+  pthread_mutex_lock(&mCellsLock);
+  cells.insert_or_assign(cellIndex, cell);
+  pthread_mutex_unlock(&mCellsLock);
 }
 
 Grid::Cell& Grid::getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate)
 {
+  pthread_mutex_lock(&mCellsLock);
   CellsI i = cells.find(cellIndex);
 
-  if (i == cells.end()) {
-    //log("Warning: trying to access a nonexistent cell. Will create one");
+  if (i == cells.end() && !forceCreate) {
+    log("Warning: trying to access a nonexistent cell. Will create one");
     forceCreate = true;
   }
 
@@ -54,7 +85,9 @@ Grid::Cell& Grid::getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCr
     i = cells.emplace(cellIndex, Cell(relativeCellIndex, cellSize, chunkEntity)).first;
   }
 
-  return i->second;
+  Cell &cell = i->second;
+  pthread_mutex_unlock(&mCellsLock);
+  return cell;
 }
 
 void Grid::addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder)

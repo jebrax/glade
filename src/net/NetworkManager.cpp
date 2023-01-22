@@ -82,6 +82,10 @@ Glade::NetworkManager::~NetworkManager()
   enet_host_destroy(serverHost);
 }
 
+void Glade::NetworkManager::addObject(GladeObject *object) {
+  mReplicatedObjects.insert(object);
+}
+
 int Glade::NetworkManager::connectToServer(const char *host, unsigned int port)
 {
   if (!mInitialized)
@@ -193,6 +197,8 @@ void Glade::NetworkManager::processIncomingData(unsigned char *data, unsigned in
 
           if (isNewEntity)
             mContext->GetCurrentState()->onEntityReplicated(entity);
+          else
+            mContext->GetCurrentState()->onEntityUnserialized(entity);
         } else {
           log("Warning: tried to replicate an object of unexpected type id. Broken packet?");
         }

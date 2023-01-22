@@ -26,14 +26,13 @@ namespace Glade
       ~NetworkManager();
       bool isServer() { return mServer; }
 
-      void addObject(GladeObject *object) {
-        mReplicatedObjects.insert(object);
-      }
-
+      // call only from main thread
+      void addObject(GladeObject *object);
       int connectToServer(const char *host = DEFAULT_SERVER_HOST, unsigned int port = DEFAULT_SERVER_PORT);
       bool send(void *peer, const unsigned char *data, int length, bool reliable);
       bool sendInputActionToServer(unsigned int inputAction, bool isPressed);
       bool sendToServer(const unsigned char *data, int length, bool reliable = false);
+      // call only from main thread
       void process();
       unsigned int getCurrentUserId() { return mCurrentUserId; }
 

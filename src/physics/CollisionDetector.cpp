@@ -64,21 +64,19 @@ void CollisionDetector::detectAndResolveCollisions(long deltaTime)
     for (int j = -1; j <= 1; j++) {
       for (int k = -1; k <= 1; k++) {
         Glade::Vector3i cellIndex(centerCellIndex.x + i, centerCellIndex.y + j, centerCellIndex.z + k);
-        auto celli = grid->cells.find(cellIndex);
+        Grid::Cell* cell = grid->getCell(cellIndex);
 
-        if (celli == grid->cells.end()) {
+        if (!cell) {
           //log("No cell here");
           continue;
         }
 
-        Grid::Cell &cell = celli->second;
-
-        if (cell.numVertices <= 0) {
+        if (cell->numVertices <= 0) {
           //log("No vertices in this cell");
           continue;
         }
 
-        staticObjects.push_back(&cell);
+        staticObjects.push_back(cell);
       }
     }
   }

@@ -30,7 +30,7 @@ private:
   State *currentState, *requestedState;
   bool stopRequested, clearRequested, suspend;
   VirtualController* controller;
-  std::queue<GladeObject*> objectsToAdd;
+  std::queue<std::pair<GladeObject*, bool>> objectsToAdd;
   std::queue<GladeObject*> objectsToRemove;
 
 public:
@@ -66,8 +66,8 @@ public:
     stopRequested = true;
   }
 
-  void add(GladeObject* object) {
-    objectsToAdd.push(object);
+  void add(GladeObject* object, bool replicate = false) {
+    objectsToAdd.emplace(object, replicate);
   }
 
   void remove(GladeObject* object) {
@@ -206,17 +206,17 @@ private:
   void removeNow(GladeObject* object) {
     renderer->remove(object);
     collisionDetector->remove(object);
-    //aiContainer->remove(object);
   }
   
   /**
    * Should not be called when containers are iterating
    */
-  void addNow(GladeObject* object) {
+  void addNow(std::pair<GladeObject*, bool> &entry) {
     //log("Adding now");
-    renderer->add(object);
-    collisionDetector->add(object);
-    //aiContainer->add(object);
+    renderer->add(entry.first);
+    collisionDetector->add(entry.first);
+    if (entry.second)
+      networkManager->addObject(entry.first);
   }
 
   /**

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <glade/math/Vector.h>
+#include <glade/io/Stream.h>
 
 #include <unordered_map>
 #include <vector>
+#include <pthread.h>
 
 class GladeObject;
 
@@ -16,24 +18,15 @@ struct Grid
     Cell(const Glade::Vector3i& relativeCellIndex, float cellSize, GladeObject *chunkEntity):
       startingVertexIndex(-1),
       numVertices(-1),
-      chunkEntity(chunkEntity)
+      chunkEntity(chunkEntity),
+      relativeCellIndex(relativeCellIndex),
+      cellSize(cellSize)
     {
-      float x = relativeCellIndex.x * cellSize;
-      float y = relativeCellIndex.y * cellSize;
-      float z = relativeCellIndex.z * cellSize;
-
       for (int i = 0; i < 8; ++i) {
         val[i] = 0.6;
       }
 
-      p[0] = Glade::Vector3f(x, y, z);
-      p[1] = Glade::Vector3f(x + cellSize, y, z),
-      p[2] = Glade::Vector3f(x + cellSize, y, z + cellSize),
-      p[3] = Glade::Vector3f(x, y, z + cellSize),
-      p[4] = Glade::Vector3f(x, y + cellSize, z),
-      p[5] = Glade::Vector3f(x + cellSize, y + cellSize, z),
-      p[6] = Glade::Vector3f(x + cellSize, y + cellSize, z + cellSize),
-      p[7] = Glade::Vector3f(x, y + cellSize, z + cellSize);
+      fillRelativePointCoords(cellSize);
     }
 
     int getNumberOfPointsWithValueLessThan(float threshold)
@@ -48,8 +41,7 @@ struct Grid
       return result;
     }
 
-    int getNumberOfPointsWithValueMoreThan(float threshold)
-    {
+    int getNumberOfPointsWithValueMoreThan(float threshold) {
       int result = 0;
 
       for (int i = 0; i < 8; i++) {
@@ -74,12 +66,51 @@ struct Grid
       return chunkEntity;
     }
 
+    void setChunkEntity(GladeObject *chunkEntity) {
+      this->chunkEntity = chunkEntity;
+    }
+
+    void serialize(Glade::MemoryOutputStream &stream)
+    {
+      stream.Write(relativeCellIndex);
+
+      for (int i = 0; i < 8; i++)
+        stream.Write(val[i]);
+    }
+
+    void unserialize(Glade::MemoryInputStream &stream)
+    {
+      stream.Read(relativeCellIndex);
+
+      for (int i = 0; i < 8; i++)
+        stream.Read(val[i]);
+
+      fillRelativePointCoords(cellSize);
+    }
+
     Glade::Vector3f p[8];
     float val[8];
     int startingVertexIndex, numVertices;
 
-    private:
+  private:
+      void fillRelativePointCoords(float cellSize) {
+        float x = relativeCellIndex.x * cellSize;
+        float y = relativeCellIndex.y * cellSize;
+        float z = relativeCellIndex.z * cellSize;
+
+        p[0] = Glade::Vector3f(x, y, z);
+        p[1] = Glade::Vector3f(x + cellSize, y, z),
+        p[2] = Glade::Vector3f(x + cellSize, y, z + cellSize),
+        p[3] = Glade::Vector3f(x, y, z + cellSize),
+        p[4] = Glade::Vector3f(x, y + cellSize, z),
+        p[5] = Glade::Vector3f(x + cellSize, y + cellSize, z),
+        p[6] = Glade::Vector3f(x + cellSize, y + cellSize, z + cellSize),
+        p[7] = Glade::Vector3f(x, y + cellSize, z + cellSize);
+      }
+
       GladeObject *chunkEntity;
+      float cellSize;
+      Glade::Vector3i relativeCellIndex;
   };
 
   typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
@@ -91,8 +122,11 @@ struct Grid
   typedef Chunks::iterator ChunksI;
 
   Grid(int chunkSizeCells, float cellSize);
+  ~Grid();
 
   Cell& getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate = false);
+  Cell* getCell(const Glade::Vector3i& cellIndex);
+  void setCell(const Glade::Vector3i& cellIndex, const Grid::Cell& cell);
   void addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder);
   void setValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float val);
   void addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index = -1);
@@ -147,9 +181,12 @@ struct Grid
   float chunkSizeCoords;
   float cellSize;
   int chunkSizeCells;
+
+private:
   Cells cells;
   Chunks chunks;
-
   AdjacencyMap cubeAdjacencyMap;
+
+  pthread_mutex_t mCellsLock;
 };
 
