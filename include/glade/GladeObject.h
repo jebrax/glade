@@ -44,6 +44,7 @@ private:
   std::string name;
   unsigned int id;
   Transform transform;
+  bool mReplicasOutdated;
 
 public:
   GladeObject(const unsigned int *force_id);
@@ -85,6 +86,14 @@ public:
     stream.Read(transform.rotation->x);
     stream.Read(transform.rotation->y);
     stream.Read(transform.rotation->z);
+  }
+
+  virtual void SetReplicasOutdated(bool outdated) {
+    mReplicasOutdated = outdated;
+  }
+
+  virtual bool AreReplicasOutdated() {
+    return mReplicasOutdated;
   }
 
   virtual unsigned int getType() { return 0; }

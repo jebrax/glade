@@ -14,6 +14,7 @@ GladeObject::GladeObject(const unsigned int *force_id):
   behavior(NULL),
   physicalObjectEnabled(true),
   behaviorEnabled(true),
+  mReplicasOutdated(true),
   name("Undefined")
 {
   if (force_id)

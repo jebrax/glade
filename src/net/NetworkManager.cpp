@@ -1,6 +1,7 @@
 #include <glade/net/NetworkManager.h>
 #include <glade/io/Stream.h>
 #include <glade/Context.h>
+
 #include <enet/enet.h>
 
 static ENetHost *serverHost = nullptr, *clientHost = nullptr;
@@ -32,6 +33,17 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
         mContext->GetCurrentState()->onUserLoggedIn(newUserId);
 
         send(event.peer, stream.GetBuffer(), stream.GetWrittenSize(), true);
+
+        // Make sure that replicas are received AFTER the login confirmation
+        std::set<ENetPeer*> newUsers;
+        newUsers.insert(event.peer);
+        sendReplicas(newUsers, true);
+
+        // temporary solution
+        //for (GladeObject* object: mReplicatedObjects) {
+        //  log("Setting object dirty");
+        //  object->SetReplicasOutdated(true);
+        //}
       }
 
       break;
@@ -44,7 +56,10 @@ void Glade::NetworkManager::processNetworkEvents(void *host)
              event.channelID);
       */
 
-      processIncomingData(event.packet->data, event.packet->dataLength);
+      if (event.packet->data && event.packet->dataLength)
+        processIncomingData(event.packet->data, event.packet->dataLength);
+      else
+        log("Warning: a packet with null buffer or zero size was received. This shouldn't happen");
 
       enet_packet_destroy(event.packet);
       break;
@@ -141,24 +156,40 @@ void Glade::NetworkManager::process()
   if (!mInitialized)
     return;
 
-  if (mServer) {
-    Glade::MemoryOutputStream stream;
+  if (mServer)
+    sendReplicas(clients);
 
-    for (GladeObject* object: mReplicatedObjects) {
+  processNetworkEvents(mServer ? serverHost : clientHost);
+}
+
+void Glade::NetworkManager::sendReplicas(const std::set<ENetPeer*> &toClients, bool forceAllObjects)
+{
+  assert(mServer);
+
+  if (toClients.size() == 0)
+    return;
+
+  if (forceAllObjects)
+    log("Forcfully sending all replicas to a client");
+
+  Glade::MemoryOutputStream stream;
+
+  for (GladeObject* object: mReplicatedObjects) {
+    if (object->AreReplicasOutdated() || forceAllObjects) {
       stream.Write((unsigned int) MessageType::OBJECT_REPLICA);
       object->serialize(stream);
+      if (!forceAllObjects)
+        object->SetReplicasOutdated(false);
+      log("Sending object");
     }
-
-    for (ENetPeer *clientPeer: clients) {
-      ENetPacket* packet = enet_packet_create(stream.GetBuffer(), stream.GetWrittenSize(), 0);
-      enet_peer_send(clientPeer, 0, packet);
-    }
-
-    processNetworkEvents(serverHost);
-    return;
   }
 
-  processNetworkEvents(clientHost);
+  if (stream.GetWrittenSize() > 0) {
+    for (ENetPeer *clientPeer: toClients) {
+      ENetPacket *packet = enet_packet_create(stream.GetBuffer(), stream.GetWrittenSize(), 0);
+      enet_peer_send(clientPeer, 0, packet);
+    }
+  }
 }
 
 void Glade::NetworkManager::processIncomingData(unsigned char *data, unsigned int size)
@@ -176,9 +207,13 @@ void Glade::NetworkManager::processIncomingData(unsigned char *data, unsigned in
           return;
         }
 
+        log("Received object");
         unsigned int receivedObjectId, receivedObjectTypeId;
         stream.Read(receivedObjectId);
         stream.Read(receivedObjectTypeId);
+
+        if (receivedObjectTypeId == 0)
+          log("Received generic object");
 
         auto entry = GladeObject::indexById.find(receivedObjectId);
         //log("Received object: %d", receivedObjectId);

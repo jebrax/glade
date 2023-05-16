@@ -4,6 +4,8 @@
 #include <set>
 
 class Context;
+struct _ENetPeer;
+typedef _ENetPeer ENetPeer;
 
 namespace Glade
 {
@@ -37,10 +39,11 @@ namespace Glade
       unsigned int getCurrentUserId() { return mCurrentUserId; }
 
     private:
-      void processNetworkEvents(void *host);
-      void processIncomingData(unsigned char *data, unsigned int size);
       int initServer(unsigned int port = DEFAULT_SERVER_PORT);
       int initClient();
+      void processNetworkEvents(void *host);
+      void processIncomingData(unsigned char *data, unsigned int size);
+      void sendReplicas(const std::set<ENetPeer*> &toClients, bool forceAllObjects = false);
 
       Context *mContext;
       bool mServer;

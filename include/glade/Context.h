@@ -212,11 +212,13 @@ private:
    * Should not be called when containers are iterating
    */
   void addNow(std::pair<GladeObject*, bool> &entry) {
-    //log("Adding now");
+    log("Adding now");
     renderer->add(entry.first);
     collisionDetector->add(entry.first);
-    if (entry.second)
+    if (entry.second) {
+      log("With replication");
       networkManager->addObject(entry.first);
+    }
   }
 
   /**
