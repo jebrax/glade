@@ -241,6 +241,11 @@ std::shared_ptr<Glade::Mesh> Glade::ResourceManager::loadMeshAssimp(const Path &
   for (int i = 0; i < mesh->mNumVertices; ++i) {
     //log("Vertex: %2.1f, %2.1f, %2.1f", mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
     //log("Normal: %2.1f, %2.1f, %2.1f", mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+    if (mesh->mTextureCoords[i]) {
+      log("TexCoord: %2.1f, %2.1f, %2.1f", mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+    } else {
+      log("No texture coords found in the vertex");
+    }
 
     // position
     gladeMesh->vertices.push_back(mesh->mVertices[i].x);   
@@ -253,8 +258,10 @@ std::shared_ptr<Glade::Mesh> Glade::ResourceManager::loadMeshAssimp(const Path &
     gladeMesh->vertices.push_back(mesh->mNormals[i].z);   
 
     // tex coord
-    gladeMesh->vertices.push_back(0.0f);   
-    gladeMesh->vertices.push_back(0.0f);   
+    gladeMesh->vertices.push_back(mesh->mTextureCoords[0][i].x);
+    gladeMesh->vertices.push_back(mesh->mTextureCoords[0][i].y);
+    //gladeMesh->vertices.push_back(0.0f);
+    //gladeMesh->vertices.push_back(0.0f);
   }
 
   for (int i = 0; i < mesh->mNumFaces; ++i) {

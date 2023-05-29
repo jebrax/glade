@@ -307,7 +307,8 @@ void Glade::Renderer::moveIntoVideoMemory(GladeObject &sceneObject)
 
   while (di != sceneObject.getDrawables()->end()) {
     moveIntoVideoMemory((*di)->getMesh());
-    moveIntoVideoMemory((*di)->getTexture());
+    moveIntoVideoMemory((*di)->getDiffuseMap());
+    moveIntoVideoMemory((*di)->getSpecularMap());
     compileShaderProgram((*di)->getShaderProgram().get());
     di++;
   }
@@ -429,13 +430,13 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Texture> texturePtr)
     GL_UNSIGNED_BYTE,
     data
   );
-  
+
   texture->erase();
 }
 
 void Glade::Renderer::removeFromVideoMemory(Drawable &drawable)
 {
-  std::shared_ptr<Texture> texture = drawable.getTexture();
+  std::shared_ptr<Texture> texture = drawable.getDiffuseMap();
   std::shared_ptr<Mesh> mesh = drawable.getMesh();
   
   if (nullptr != texture && texture->hasVideoBufferHandle()) {
@@ -557,59 +558,60 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  std::shared_ptr<Texture> texture = (*di)->getTexture();
-  
-  if (texture != nullptr) {
-    if (texture->hasVideoBufferHandle()) {
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, texture->getVideoBufferHandle());
+  std::shared_ptr<Texture> diffuseMap = (*di)->getDiffuseMap();
 
-      if (firstCycle) {
-        checkGLError();
-      }
+  if (diffuseMap != nullptr && diffuseMap->hasVideoBufferHandle()) {
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseMap->getVideoBufferHandle());
 
-      TextureTransform* texTransform = (*di)->getTextureTransform();
-      texTransform->executeCallbacks();
+    if (firstCycle) {
+      checkGLError();
+    }
 
-      glUniform1i(uSamplerNumber, 0);
-      glUniform1f(uTexScaleX, texTransform->textureScaleX  / (float) texture->numberOfFrames * texTransform->getTextureScaleXModifierForFrame(*texture));
-      glUniform1f(uTexScaleY, texTransform->textureScaleY  / (float) texture->numberOfAnimations * texTransform->getTextureScaleYModifierForFrame(*texture));
-      glUniform1f(uTexOffsetX, texTransform->getCurrentFrameNumber(*texture) * texture->texCoordFrameWidth);
-      glUniform1f(uTexOffsetY, texTransform->getCurrentAnimationNumber(*texture) * texture->texCoordFrameHeight);
+    TextureTransform *texTransform = (*di)->getTextureTransform();
+    texTransform->executeCallbacks();
 
-      if (firstCycle) {
-        checkGLError();
-      }
+    glUniform1i(uDiffuseMap, 0);
+    glUniform1f(uTexScaleX, texTransform->textureScaleX / (float) diffuseMap->numberOfFrames *
+                            texTransform->getTextureScaleXModifierForFrame(*diffuseMap));
+    glUniform1f(uTexScaleY, texTransform->textureScaleY / (float) diffuseMap->numberOfAnimations *
+                            texTransform->getTextureScaleYModifierForFrame(*diffuseMap));
+    glUniform1f(uTexOffsetX, texTransform->getCurrentFrameNumber(*diffuseMap) * diffuseMap->texCoordFrameWidth);
+    glUniform1f(uTexOffsetY, texTransform->getCurrentAnimationNumber(*diffuseMap) * diffuseMap->texCoordFrameHeight);
 
-      glVertexAttribPointer(
-        aTexCoord, TEXCOORD_SIZE_FLOATS,
-        GL_FLOAT, GL_FALSE,
-        VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
-      );
-
-      if (firstCycle) {
-        checkGLError();
-      }
-      
-      glEnableVertexAttribArray(aTexCoord);
+    if (firstCycle) {
+      checkGLError();
     }
   }
 
-  // Always enable for now (as we use texCoord for debugging color)
-  // ---------
+  std::shared_ptr<Texture> specularMap = (*di)->getSpecularMap();
+
+  if (specularMap != nullptr && specularMap->hasVideoBufferHandle()) {
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, specularMap->getVideoBufferHandle());
+
+    if (firstCycle) {
+      checkGLError();
+    }
+
+    glUniform1i(uSpecularMap, 1);
+
+    if (firstCycle) {
+      checkGLError();
+    }
+  }
+
   glVertexAttribPointer(
-    aTexCoord, TEXCOORD_SIZE_FLOATS,
-    GL_FLOAT, GL_FALSE,
-    VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
+      aTexCoord, TEXCOORD_SIZE_FLOATS,
+      GL_FLOAT, GL_FALSE,
+      VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
   );
 
   if (firstCycle) {
     checkGLError();
   }
-  
-  glEnableVertexAttribArray(aTexCoord);
-  // ---------
 
+  glEnableVertexAttribArray(aTexCoord);
   perception->adjust();
   writeUniformsToVideoMemory(perception, *program);
   writeUniformsToVideoMemory(*di, *program);
@@ -624,12 +626,9 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  //glDisableVertexAttribArray(aPosition);
-  //glDisableVertexAttribArray(aNormal);
-
-  //if (texture != nullptr && texture->hasVideoBufferHandle()) {
-    //glDisableVertexAttribArray(aTexCoord);
-  //}
+  glDisableVertexAttribArray(aPosition);
+  glDisableVertexAttribArray(aNormal);
+  glDisableVertexAttribArray(aTexCoord);
 
   if (firstCycle) {
     checkGLError();
@@ -728,21 +727,22 @@ void Glade::Renderer::switchProjectionMode(ProjectionMode projectionMode)
 
 void Glade::Renderer::getShaderHandles(ShaderProgram &program)
 {
-  uProjectionMatrix   = glGetUniformLocation(program.gpuHandle, "uProjectionMatrix");
-  uWorldViewMatrix  = glGetUniformLocation(program.gpuHandle, "uWorldViewMatrix");
-  uWorldMatrix  = glGetUniformLocation(program.gpuHandle, "uWorldMatrix");
-  uCameraTransform = glGetUniformLocation(program.gpuHandle, "uCameraTransform");
-  uCameraPosition = glGetUniformLocation(program.gpuHandle, "uCameraPosition");
+  uProjectionMatrix  = glGetUniformLocation(program.gpuHandle, "uProjectionMatrix");
+  uWorldViewMatrix   = glGetUniformLocation(program.gpuHandle, "uWorldViewMatrix");
+  uWorldMatrix       = glGetUniformLocation(program.gpuHandle, "uWorldMatrix");
+  uCameraTransform   = glGetUniformLocation(program.gpuHandle, "uCameraTransform");
+  uCameraPosition    = glGetUniformLocation(program.gpuHandle, "uCameraPosition");
 
-  aPosition      = glGetAttribLocation(program.gpuHandle, "aPosition");
-  aNormal        = glGetAttribLocation(program.gpuHandle, "aNormal");
-  aTexCoord      = glGetAttribLocation(program.gpuHandle, "aTexCoord0");
-  
-  uSamplerNumber  = glGetUniformLocation(program.gpuHandle, "uTextureSampler0");
-  uTexScaleX       = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleX0");
-  uTexScaleY       = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleY0");
-  uTexOffsetX     = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetX0");
-  uTexOffsetY     = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetY0");
+  aPosition          = glGetAttribLocation(program.gpuHandle, "aPosition");
+  aNormal            = glGetAttribLocation(program.gpuHandle, "aNormal");
+  aTexCoord          = glGetAttribLocation(program.gpuHandle, "aTexCoord0");
+
+  uDiffuseMap        = glGetUniformLocation(program.gpuHandle, "uDiffuseMap");
+  uSpecularMap       = glGetUniformLocation(program.gpuHandle, "uSpecularMap");
+  uTexScaleX         = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleX0");
+  uTexScaleY         = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleY0");
+  uTexOffsetX        = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetX0");
+  uTexOffsetY        = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetY0");
 } 
 
 GLuint Glade::Renderer::loadShader(GLuint shaderType, std::vector<char> &shader_source)

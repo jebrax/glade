@@ -42,7 +42,7 @@ namespace Glade {
 
     // handles to shader uniforms
     uint32_t  uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
-        uSamplerNumber, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
+        uDiffuseMap, uSpecularMap, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
 
     // handles to shader attributes
       uint32_t aPosition, aNormal, aTexCoord;
