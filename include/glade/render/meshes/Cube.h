@@ -1,14 +1,11 @@
 #include "Mesh.h"
+#include <iterator>
 
 namespace Glade {
   class Cube: public Mesh
   {
-    public:
-      Cube(): Mesh() {}
-      
-      virtual float* getVertices()
-      {
-        static float vertices[] = {
+    private:
+      inline static float vertexData[] = {
           // front face
           0.5f, 0.5f, -0.5f,
           0.0f, 0.0f, -1.0f,
@@ -115,12 +112,7 @@ namespace Glade {
           1.0f, 1.0f,
         };
 
-        return vertices;
-      }
-
-      virtual uint32_t* getIndices()
-      {
-        static uint32_t indices[] = {
+      inline static uint32_t indexData[] = {
           0, 1, 2,
           3, 0, 2,
 
@@ -139,18 +131,28 @@ namespace Glade {
           20, 21, 22,
           23, 20, 22,
         };
-        
-        return indices;
+
+    public:
+      Cube(): Mesh() {}
+
+      virtual float* getVertices()
+      {
+        return vertexData;
+      }
+
+      virtual uint32_t* getIndices()
+      {
+        return indexData;
       }
 
       virtual unsigned int getVertexBufferSize()
       {
-        return 192;
+        return static_cast<unsigned int>(std::size(vertexData));
       }
       
       virtual unsigned int getIndexBufferSize()
       {
-        return 36;
+        return static_cast<unsigned int>(std::size(indexData));
       }
   };
 }

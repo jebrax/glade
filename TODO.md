@@ -1,59 +1,63 @@
 # Renderer TODO
 
 These findings came from the beatemup prototype: a green rectangle rendered
-through Glade with an orthographic camera. The rectangle is visible, but the
-framebuffer smoke test reports OpenGL errors. No renderer fixes have been
-applied yet.
+through Glade with an orthographic camera. The attribute and buffer-binding
+fixes were committed in `0d1692d`. The existing `lit_shape` smoke test now passes
+without temporary diagnostics. The built-in rectangle issues and additional
+verification below remain outstanding.
 
 ## Shader attributes and mesh upload
 
-- [ ] Resolve shader attribute locations before configuring a mesh's vertex
-  attributes. In `src/render/GladeRenderer.cpp`,
-  `Renderer::moveIntoVideoMemory(GladeObject&)` currently uploads the mesh before
-  compiling its shader program. Attribute locations can therefore be
-  uninitialised or left over from another program. Compiling/resolving the
-  program first is the immediate correction; ensure reused programs also have
-  their locations selected before configuring the mesh.
-- [ ] Bind the mesh's VAO and vertex buffer before calling
-  `glVertexAttribPointer`. The mesh upload path currently unbinds the buffers
-  before setting attribute pointers. Each pointer must capture the intended
-  bound vertex buffer. Bind the index buffer while the intended VAO is active
-  as well, since that binding belongs to the VAO. Review the binding order in
-  both upload and draw paths, including unbinding operations in a core context.
-- [ ] Store attribute locations as signed integers in
-  `include/glade/render/GladeRenderer.h`. `glGetAttribLocation` returns `-1` for
-  inactive or absent attributes; the current `uint32_t` fields turn this into a
-  large positive value, making checks such as `aNormal >= 0` ineffective.
-- [ ] Configure, enable, and disable an attribute only when its location is
-  valid. Apply this consistently to position, normal, and texture coordinates
-  in upload and drawing. A solid-colour shader need not use normals or UVs.
-- [ ] Ensure VAO configuration remains correct when a mesh is shared by
-  programs with different attribute locations. Either establish a consistent
-  attribute layout or configure/cache bindings for the relevant program.
+- [x] Resolve shader attribute locations before configuring a mesh's vertex
+  attributes. `Renderer::moveIntoVideoMemory(GladeObject&)` in
+  `src/render/GladeRenderer.cpp` now compiles the shader and refreshes its
+  locations before uploading the mesh, including for reused programs.
+- [x] Bind the mesh's VAO and vertex buffer before calling
+  `glVertexAttribPointer`. Upload and drawing now bind the intended VAO before
+  its buffers. Attribute pointers capture the bound vertex buffer, and the
+  index buffer is bound while that VAO is active.
+- [x] Store attribute locations as signed integers in
+  `include/glade/render/GladeRenderer.h`, initialised to `-1`. The negative
+  result for an inactive attribute is no longer converted to an unsigned index.
+- [x] Configure, enable, and disable an attribute only when its location is
+  valid. Position, normal, and texture-coordinate calls are guarded in both
+  upload and drawing.
+- [ ] Verify VAO configuration when a mesh is shared by programs with different
+  attribute locations. Drawing currently refreshes the bindings for each
+  program, but this scenario has not been exercised. Determine whether any
+  further layout or caching changes are needed based on that test.
 
 ### Verification
 
-- Render a position-only solid-colour shader and Glade's existing `lit_shape`
-  shader pair. Check both expected framebuffer colours and the absence of
-  OpenGL errors during upload, drawing, and shutdown.
-- Exercise multiple objects/programs and a shared mesh to catch stale attribute
-  locations and VAO bindings.
-- Rerun `beatemup --smoke-test`. Before these fixes, the embedded position-only
-  shader produced green centre pixels with error `0x502`
-  (`GL_INVALID_OPERATION`); the existing `lit_shape` pair produced green centre
-  pixels with error `0x501` (`GL_INVALID_VALUE`). These observations do not
-  establish which individual call caused each error; check errors at the
-  relevant calls when implementing the fixes.
+- [x] Run `beatemup --smoke-test` with Glade's existing `lit_shape` shader pair.
+  Expected green rectangle and black background verified; state shutdown
+  completed. Per-call diagnostics captured zero errors after the fixes. After
+  removing diagnostics and updating the submodule, the smoke test passed again.
+- [ ] Rerun a position-only solid-colour shader after the fixes. Verify expected
+  framebuffer colours and no OpenGL errors during upload, drawing, or shutdown.
+- [ ] Exercise multiple objects/programs and a shared mesh to catch stale
+  attribute locations and VAO bindings.
+
+Before the fixes, the embedded position-only shader produced green centre
+pixels with error `0x502` (`GL_INVALID_OPERATION`); the existing `lit_shape` pair
+produced green centre pixels with error `0x501` (`GL_INVALID_VALUE`). Per-call
+instrumentation of the latter isolated six invalid-index errors during upload
+from unresolved attribute locations, and three errors per draw from using the
+inactive UV attribute (`-1` converted to `4294967295`). Upload also configured
+attribute pointers with vertex buffer zero bound. These findings motivated the
+completed fixes above; the earlier `0x502` was not separately isolated.
 
 ## Built-in rectangle mesh
 
-- [ ] Correct `Rectangle::getVertexBufferSize()` in
-  `include/glade/render/meshes/Rectangle.h`. It returns 48 floats, but the actual
-  data contains 32 (four vertices with eight floats each), causing the renderer
-  to read beyond the array during upload. Derive the count from the data where
-  practical so the declaration cannot drift.
-- [ ] Review the rectangle's triangle winding. Its current indices are clockwise
-  when viewed from positive Z, while the renderer uses counter-clockwise front
-  faces and back-face culling. Make the intended visible face consistent with
-  that convention and verify it with the default camera orientation. The
-  prototype currently uses its own correctly sized, counter-clockwise mesh.
+- [x] Derive the vertex and index buffer sizes from their C arrays using
+  `std::size` for Rectangle, Cube, Square, and Triangle. This corrects Rectangle's
+  reported vertex data from 48 to 32 floats and Triangle's from 36 to 24 floats.
+  The shared inline static C arrays keep getters and counts tied to the same
+  storage; geometry and triangle winding are unchanged.
+- [x] Reverse Rectangle's triangle indices so both faces are counter-clockwise
+  when viewed from positive Z, matching the renderer's front-face convention.
+  Cross-product checks verify positive-Z geometric normals. Rendering the
+  built-in mesh with the default camera remains to be verified; the prototype
+  still uses its own mesh.
+- [x] Set Square's four vertex normals to `(0, 0, 1)`, matching its positive-Z
+  face winding and planar geometry.

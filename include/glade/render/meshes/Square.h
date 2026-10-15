@@ -1,52 +1,54 @@
 #include "Mesh.h"
+#include <iterator>
 
 namespace Glade {
   class Square: public Mesh
   {
-    public:
-      Square(): Mesh() {}
-      
-      virtual float* getVertices()
-      {
-        static float vertices[] = {
+    private:
+      inline static float vertexData[] = {
           0.5f, 0.5f, 0.0f,
-          0.577349f, 0.577349f, -0.577349f,
+          0.0f, 0.0f, 1.0f,
           0.000000f, 0.000000f,
 
           0.5f, -0.5f, 0.0f,
-          0.577349f, -0.577349f, -0.577349f,
+          0.0f, 0.0f, 1.0f,
           0.000000f, 1.000000f,
 
           -0.5f, -0.5f, 0.0f,
-          -0.577349f, -0.577349f, -0.577349f,
+          0.0f, 0.0f, 1.0f,
           1.000000f, 0.000000f,
 
           -0.5f, 0.5f, 0.0f,
-          -0.577349f, 0.577349f, -0.577349f,
+          0.0f, 0.0f, 1.0f,
           1.000000f, 1.000000f,
         };
-        
-        return vertices;
-      }
 
-      virtual uint32_t* getIndices()
-      {
-        static uint32_t indices[] = {
+      inline static uint32_t indexData[] = {
           2, 1, 0,
           2, 0, 3,
         };
 
-        return indices;
+    public:
+      Square(): Mesh() {}
+
+      virtual float* getVertices()
+      {
+        return vertexData;
+      }
+
+      virtual uint32_t* getIndices()
+      {
+        return indexData;
       }
 
       virtual unsigned int getVertexBufferSize()
       {
-        return 32;
+        return static_cast<unsigned int>(std::size(vertexData));
       }
 
       virtual unsigned int getIndexBufferSize()
       {
-        return 6;
+        return static_cast<unsigned int>(std::size(indexData));
       }
   };
 }

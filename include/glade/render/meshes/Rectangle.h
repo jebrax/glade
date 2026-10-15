@@ -1,16 +1,13 @@
 #pragma once
 
 #include "Mesh.h"
+#include <iterator>
 
 namespace Glade {
   class Rectangle: public Mesh
   {
-    public:
-      Rectangle() : Mesh() {}
-      
-      virtual float* getVertices()
-      {
-        static float vertices[] = {
+    private:
+      inline static float vertexData[] = {
           -1, -1, 0,
           0, 0, 0,
           0, 0,
@@ -27,24 +24,30 @@ namespace Glade {
           0, 0, 0,
           0, 1,   
         };
-          
-        return vertices;
+
+      inline static uint32_t indexData[] = { 0, 1, 2, 0, 2, 3 };
+
+    public:
+      Rectangle() : Mesh() {}
+
+      virtual float* getVertices()
+      {
+        return vertexData;
       }
 
       virtual uint32_t* getIndices()
       {
-        static uint32_t indices[] = { 2, 1, 0, 3, 2, 0 };
-        return indices;
+        return indexData;
       }
 
       virtual unsigned int getVertexBufferSize()
       {
-        return 48;
+        return static_cast<unsigned int>(std::size(vertexData));
       }
       
       virtual unsigned int getIndexBufferSize()
       {
-        return 6;
+        return static_cast<unsigned int>(std::size(indexData));
       }
   };
 }
