@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "Widget.h"
 #include "font/BitmapFont.h"
 #include "layout/CenterLayout.h"

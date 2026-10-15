@@ -1,5 +1,7 @@
 #ifdef GLADE_WINDOWS
 
+#include <cstring>
+
 #include <stdlib.h>
 #include <windows.h>
 #include <dbghelp.h>

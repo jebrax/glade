@@ -1,3 +1,4 @@
+#include <cassert>
 #include <glade/net/NetworkManager.h>
 #include <glade/io/Stream.h>
 #include <glade/Context.h>

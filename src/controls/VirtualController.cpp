@@ -1,3 +1,4 @@
+#include <cassert>
 #include <glade/controls/VirtualController.h>
 #include <glade/controls/definitions.h>
 

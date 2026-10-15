@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include <vector>
 
 #include "../exception/GladeException.h"

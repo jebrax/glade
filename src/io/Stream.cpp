@@ -1,3 +1,5 @@
+#include <cassert>
+#include <cstring>
 #include <glade/io/Stream.h>
 #include <glade/debug/log.h>
 #include <algorithm>

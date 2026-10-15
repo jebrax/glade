@@ -1,3 +1,4 @@
+#include <cassert>
 #include <glade/generation/Grid.h>
 
 #include <glade/debug/log.h>
