@@ -265,6 +265,11 @@ void Glade::Renderer::compileShaderProgram(ShaderProgram *program)
   program->gpuHandle = glCreateProgram();
   glAttachShader(program->gpuHandle, vertexShaderPointer);
   glAttachShader(program->gpuHandle, fragmentShaderPointer);
+
+  // Use the same attribute slots for every program sharing the mesh layout.
+  glBindAttribLocation(program->gpuHandle, 0, "aPosition");
+  glBindAttribLocation(program->gpuHandle, 1, "aNormal");
+  glBindAttribLocation(program->gpuHandle, 2, "aTexCoord0");
   glLinkProgram(program->gpuHandle);
 
   glUseProgram(program->gpuHandle);
