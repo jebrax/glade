@@ -307,9 +307,10 @@ void Glade::Renderer::moveIntoVideoMemory(GladeObject &sceneObject)
   GladeObject::DrawablesI di = sceneObject.getDrawables()->begin();
 
   while (di != sceneObject.getDrawables()->end()) {
+    compileShaderProgram((*di)->getShaderProgram().get());
+    getShaderHandles(*(*di)->getShaderProgram());
     moveIntoVideoMemory((*di)->getMesh());
     // textures are moved lazily right before drawing them
-    compileShaderProgram((*di)->getShaderProgram().get());
     di++;
   }
   
@@ -337,12 +338,6 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Mesh> mesh)
     log("Created VBOs %d, %d", mesh->vertexVboId, mesh->indexVboId);
   }
 
-  // Loading data into VBOs
-  bindBuffers(mesh.get());
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->getVertexBufferSize(), mesh->getVertices(), GL_DYNAMIC_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh->getIndexBufferSize(), mesh->getIndices(), GL_DYNAMIC_DRAW);
-  bindBuffers(0);
-
   // Creating VAO
   if (mesh->vaoId == -1) {
     GLuint vaoIds[1];
@@ -352,33 +347,28 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Mesh> mesh)
   }
 
   glBindVertexArray(mesh->vaoId);
-
-  glEnableVertexAttribArray(aPosition);
-  glEnableVertexAttribArray(aNormal);
-  glEnableVertexAttribArray(aTexCoord);
- 
-  glVertexAttribPointer(
-    aPosition, POS_SIZE_FLOATS,
-    GL_FLOAT, GL_FALSE,
-    VERTEX_STRIDE_BYTES, (const GLvoid *) POS_OFFSET_BYTES
-  );
-
-  glVertexAttribPointer(
-    aNormal, NORMAL_SIZE_FLOATS,
-    GL_FLOAT, GL_FALSE,
-    VERTEX_STRIDE_BYTES, (const GLvoid *) NORMAL_OFFSET_BYTES
-  );
-
-  glVertexAttribPointer(
-    aTexCoord, TEXCOORD_SIZE_FLOATS,
-    GL_FLOAT, GL_FALSE,
-    VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
-  );
-
   bindBuffers(mesh.get());
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mesh->getVertexBufferSize(), mesh->getVertices(), GL_DYNAMIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * mesh->getIndexBufferSize(), mesh->getIndices(), GL_DYNAMIC_DRAW);
+
+  if (aPosition >= 0) {
+    glEnableVertexAttribArray(aPosition);
+    glVertexAttribPointer(aPosition, POS_SIZE_FLOATS, GL_FLOAT, GL_FALSE,
+      VERTEX_STRIDE_BYTES, POS_OFFSET_BYTES);
+  }
+  if (aNormal >= 0) {
+    glEnableVertexAttribArray(aNormal);
+    glVertexAttribPointer(aNormal, NORMAL_SIZE_FLOATS, GL_FLOAT, GL_FALSE,
+      VERTEX_STRIDE_BYTES, NORMAL_OFFSET_BYTES);
+  }
+  if (aTexCoord >= 0) {
+    glEnableVertexAttribArray(aTexCoord);
+    glVertexAttribPointer(aTexCoord, TEXCOORD_SIZE_FLOATS, GL_FLOAT, GL_FALSE,
+      VERTEX_STRIDE_BYTES, TEXCOORD_OFFSET_BYTES);
+  }
 
   glBindVertexArray(0);
-  bindBuffers(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   //mesh->erase();
 }
@@ -521,25 +511,26 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
   }
   
   std::shared_ptr<Glade::Mesh> mesh = (*di)->getMesh();
-  bindBuffers(mesh.get());
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indexVboId);
   glBindVertexArray(mesh->vaoId);
+  bindBuffers(mesh.get());
   
   if (firstCycle) {
     checkGLError();
   }
 
-  glVertexAttribPointer(
-    aPosition, POS_SIZE_FLOATS,
-    GL_FLOAT, GL_FALSE,
-    VERTEX_STRIDE_BYTES, (const GLvoid *) POS_OFFSET_BYTES
-  );
+  if (aPosition >= 0) {
+    glVertexAttribPointer(
+      aPosition, POS_SIZE_FLOATS,
+      GL_FLOAT, GL_FALSE,
+      VERTEX_STRIDE_BYTES, (const GLvoid *) POS_OFFSET_BYTES
+    );
+  }
 
   if (firstCycle) {
     checkGLError();
   }
 
-  glEnableVertexAttribArray(aPosition);
+  if (aPosition >= 0) glEnableVertexAttribArray(aPosition);
   
   if (firstCycle) {
     checkGLError();
@@ -559,17 +550,19 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  glVertexAttribPointer(
-      aTexCoord, TEXCOORD_SIZE_FLOATS,
-      GL_FLOAT, GL_FALSE,
-      VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
-  );
+  if (aTexCoord >= 0) {
+    glVertexAttribPointer(
+        aTexCoord, TEXCOORD_SIZE_FLOATS,
+        GL_FLOAT, GL_FALSE,
+        VERTEX_STRIDE_BYTES, (const GLvoid*) TEXCOORD_OFFSET_BYTES
+    );
+  }
 
   if (firstCycle) {
     checkGLError();
   }
 
-  glEnableVertexAttribArray(aTexCoord);
+  if (aTexCoord >= 0) glEnableVertexAttribArray(aTexCoord);
   perception->adjust();
   writeUniformsToVideoMemory(perception, *program);
   writeUniformsToVideoMemory(*di, *program);
@@ -584,9 +577,9 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  glDisableVertexAttribArray(aPosition);
-  glDisableVertexAttribArray(aNormal);
-  glDisableVertexAttribArray(aTexCoord);
+  if (aPosition >= 0) glDisableVertexAttribArray(aPosition);
+  if (aNormal >= 0) glDisableVertexAttribArray(aNormal);
+  if (aTexCoord >= 0) glDisableVertexAttribArray(aTexCoord);
 
   if (firstCycle) {
     checkGLError();

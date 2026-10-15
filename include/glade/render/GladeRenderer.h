@@ -45,7 +45,7 @@ namespace Glade {
         uDiffuseMap, uSpecularMap, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
 
     // handles to shader attributes
-      uint32_t aPosition, aNormal, aTexCoord;
+      int32_t aPosition = -1, aNormal = -1, aTexCoord = -1;
  
     Perception  *perception;
     unsigned short viewportWidth, viewportHeight;
