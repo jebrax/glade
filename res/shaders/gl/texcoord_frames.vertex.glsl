@@ -1,3 +1,5 @@
+#version 410 core
+
 const float ZERO = 0.0, ONE = 1.0;
 
 uniform mat4 uProjectionMatrix;
@@ -8,16 +10,14 @@ uniform float uTexCoordScaleY0;
 uniform float uTexCoordOffsetX0;
 uniform float uTexCoordOffsetY0;
 
-attribute vec4 aPosition;
-attribute vec3 aNormal;
-attribute vec2 aTexCoord0;
+in vec4 aPosition;
+in vec3 aNormal;
+in vec2 aTexCoord0;
 
-varying vec2 vTexCoord0;
+out vec2 vTexCoord0;
 
-vec4 transformTexCoords(vec2 texCoord, vec2 offset, vec2 scale) {
-  vec4 result;
-  result.y = 0;
-  result.z = 0;
+vec2 transformTexCoords(vec2 texCoord, vec2 offset, vec2 scale) {
+  vec2 result;
 
   if (scale.x < ZERO) {
     result.x = ONE + texCoord.x * scale.x - offset.x;
