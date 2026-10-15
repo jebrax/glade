@@ -96,12 +96,12 @@ class BitmapFont: public Font
         rectangle->getTransform()->getPosition()->x = nextOffsetX - stringScaleX;
         nextOffsetX += rectangle->getTransform()->getScale()->x;
 
-        rectangle->setTexture(atlas);
+        rectangle->setUniform("uTextureSampler0", atlas);
 //      rectangle->setConstantColor((float)(rand() % 100)/100.0f, (float)(rand() % 100)/100.0f, (float)(rand() % 100)/100.0f, 0.5f);
-        rectangle->getTextureTransform()->setCurrentFrameNumber(glyphPosition.x);
-        rectangle->getTextureTransform()->setCurrentAnimationNumber(glyphPosition.y);
-        rectangle->getTextureTransform()->setCurrentFrameWidth(glyphWidth);
-        rectangle->getTextureTransform()->setCurrentFrameHeight(glyphHeight);
+        rectangle->getTexture2DTransform()->setCurrentFrameNumber(glyphPosition.x);
+        rectangle->getTexture2DTransform()->setCurrentAnimationNumber(glyphPosition.y);
+        rectangle->getTexture2DTransform()->setCurrentFrameWidth(glyphWidth);
+        rectangle->getTexture2DTransform()->setCurrentFrameHeight(glyphHeight);
         
         text->push_back(rectangle);
       }

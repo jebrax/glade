@@ -42,17 +42,17 @@ public:
 protected:
   Transform transform;
   std::shared_ptr<Glade::Mesh> mesh;
-  std::shared_ptr<Texture> diffuseMap;
-  std::shared_ptr<Texture> specularMap;
-  TextureTransform textureTransform;
+  TextureTransform texture2DTransform;
   std::shared_ptr<ShaderProgram> shaderProgram;
-  
+
 private:
   ShaderFloatUniforms shaderFloatUniforms;
   ShaderBoolUniforms  shaderBoolUniforms;
   ShaderIntUniforms   shaderIntUniforms;
   ShaderVec3Uniforms  shaderVec3Uniforms;
   ShaderVec4Uniforms  shaderVec4Uniforms;
+  Shader2DTextureUniforms shader2DTextureUniforms;
+  ShaderCubeMapTextureUniforms shaderCubeMapTextureUniforms;
   
 public:
   Drawable():
@@ -119,7 +119,27 @@ public:
   {
     return shaderVec4Uniforms.cend();
   }
-  
+
+  Shader2DTextureUniformsCI texture2DUniformsBegin()
+  {
+    return shader2DTextureUniforms.cbegin();
+  }
+
+  Shader2DTextureUniformsCI texture2DUniformsEnd()
+  {
+    return shader2DTextureUniforms.cend();
+  }
+
+  ShaderCubeMapTextureUniformsCI textureCubeMapUniformsBegin()
+  {
+    return shaderCubeMapTextureUniforms.cbegin();
+  }
+
+  ShaderCubeMapTextureUniformsCI textureCubeMapUniformsEnd()
+  {
+    return shaderCubeMapTextureUniforms.cend();
+  }
+
   void setUniform(const std::string &name, float val)
   {
     shaderFloatUniforms[name] = val;
@@ -140,42 +160,28 @@ public:
     shaderVec3Uniforms[name] = val;
   }
   
-  void setUniform(const std::string &name, const Glade::Vector4f val)
+  void setUniform(const std::string &name, const Glade::Vector4f &val)
   {
     shaderVec4Uniforms[name] = val;
+  }
+
+  void setUniform(const std::string &name, const std::shared_ptr<Texture> texture)
+  {
+    shader2DTextureUniforms[name] = texture;
+  }
+
+  void setUniform(const std::string &name, const CubeMapTexture &texture)
+  {
+    shaderCubeMapTextureUniforms[name] = texture;
   }
   
   std::shared_ptr<ShaderProgram> getShaderProgram()
   {
     return shaderProgram;
   }
-  
-  void setDiffuseMap(std::shared_ptr<Texture> diffuseMap) {
-    this->diffuseMap = diffuseMap;
-  }
 
-  std::shared_ptr<Texture> getDiffuseMap(void) {
-    return diffuseMap;
-  }
-
-  void setSpecularMap(std::shared_ptr<Texture> specularMap) {
-    this->specularMap = specularMap;
-  }
-
-  std::shared_ptr<Texture> getSpecularMap(void) {
-    return specularMap;
-  }
-
-  void setTexture(std::shared_ptr<Texture> texture) {
-    this->diffuseMap = texture;
-  }
-
-  std::shared_ptr<Texture> getTexture(void) {
-    return diffuseMap;
-  }
-
-  TextureTransform* getTextureTransform(void) {
-    return &textureTransform;
+  TextureTransform* getTexture2DTransform(void) {
+    return &texture2DTransform;
   }
 
   void setTransform(const Transform &transform) {

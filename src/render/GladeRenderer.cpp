@@ -89,7 +89,7 @@ void Glade::Renderer::remove(GladeObject *sceneObject)
   for (GladeObject::DrawablesI di = drawables->begin(); di != drawables->end(); di++) {
     removeFromVideoMemory(**di);
     checkGLError();
-    (*di)->getTextureTransform()->removeAnimationCallbacks();
+    (*di)->getTexture2DTransform()->removeAnimationCallbacks();
   }
   
   sceneObjects.erase(oi);
@@ -108,7 +108,7 @@ void Glade::Renderer::clear(void)
     drawables = (*oi)->getDrawables();
     
     for (GladeObject::DrawablesI di = drawables->begin(); di != drawables->end(); di++) {
-      (*di)->getTextureTransform()->removeAnimationCallbacks();
+      (*di)->getTexture2DTransform()->removeAnimationCallbacks();
     }
     
     oi = sceneObjects.erase(oi);
@@ -282,7 +282,7 @@ void Glade::Renderer::compileShaderProgram(ShaderProgram *program)
     
     int uniformHandle = glGetUniformLocation(program->gpuHandle, buffer);
     assert(uniformHandle >= 0);
-    program->saveUniformHandle(buffer, uniformHandle); //!!!
+    program->saveUniformHandle(buffer, uniformHandle); //!!! dafuq?
   }
 
   getShaderHandles(*program);
@@ -307,8 +307,7 @@ void Glade::Renderer::moveIntoVideoMemory(GladeObject &sceneObject)
 
   while (di != sceneObject.getDrawables()->end()) {
     moveIntoVideoMemory((*di)->getMesh());
-    moveIntoVideoMemory((*di)->getDiffuseMap());
-    moveIntoVideoMemory((*di)->getSpecularMap());
+    // textures are moved lazily right before drawing them
     compileShaderProgram((*di)->getShaderProgram().get());
     di++;
   }
@@ -383,7 +382,7 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Mesh> mesh)
   //mesh->erase();
 }
 
-void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Texture> texturePtr)
+void Glade::Renderer::moveTextureIntoVideoMemory(std::shared_ptr<Texture> texturePtr)
 {
   Texture *texture = texturePtr.get();
   
@@ -436,16 +435,17 @@ void Glade::Renderer::moveIntoVideoMemory(std::shared_ptr<Texture> texturePtr)
 
 void Glade::Renderer::removeFromVideoMemory(Drawable &drawable)
 {
-  std::shared_ptr<Texture> texture = drawable.getDiffuseMap();
   std::shared_ptr<Mesh> mesh = drawable.getMesh();
   
-  if (nullptr != texture && texture->hasVideoBufferHandle()) {
+  Drawable::Shader2DTextureUniformsCI tex2di = drawable.texture2DUniformsBegin();
+
+  while (tex2di != drawable.texture2DUniformsEnd()) {
     GLuint texIds[1];
-    texIds[0] = texture->getVideoBufferHandle();
+    texIds[0] = tex2di->second->getVideoBufferHandle();
     glDeleteTextures(1, texIds);
-    texture->setVideoBufferHandle(-1);
+    tex2di->second->setVideoBufferHandle(-1);
   }
-  
+
   if (mesh->hasVideoBufferHandle()) {
     GLuint vboIds[2];
     vboIds[0] = mesh->vertexVboId;
@@ -558,49 +558,6 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     checkGLError();
   }
 
-  std::shared_ptr<Texture> diffuseMap = (*di)->getDiffuseMap();
-
-  if (diffuseMap != nullptr && diffuseMap->hasVideoBufferHandle()) {
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuseMap->getVideoBufferHandle());
-
-    if (firstCycle) {
-      checkGLError();
-    }
-
-    TextureTransform *texTransform = (*di)->getTextureTransform();
-    texTransform->executeCallbacks();
-
-    glUniform1i(uDiffuseMap, 0);
-    glUniform1f(uTexScaleX, texTransform->textureScaleX / (float) diffuseMap->numberOfFrames *
-                            texTransform->getTextureScaleXModifierForFrame(*diffuseMap));
-    glUniform1f(uTexScaleY, texTransform->textureScaleY / (float) diffuseMap->numberOfAnimations *
-                            texTransform->getTextureScaleYModifierForFrame(*diffuseMap));
-    glUniform1f(uTexOffsetX, texTransform->getCurrentFrameNumber(*diffuseMap) * diffuseMap->texCoordFrameWidth);
-    glUniform1f(uTexOffsetY, texTransform->getCurrentAnimationNumber(*diffuseMap) * diffuseMap->texCoordFrameHeight);
-
-    if (firstCycle) {
-      checkGLError();
-    }
-  }
-
-  std::shared_ptr<Texture> specularMap = (*di)->getSpecularMap();
-
-  if (specularMap != nullptr && specularMap->hasVideoBufferHandle()) {
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, specularMap->getVideoBufferHandle());
-
-    if (firstCycle) {
-      checkGLError();
-    }
-
-    glUniform1i(uSpecularMap, 1);
-
-    if (firstCycle) {
-      checkGLError();
-    }
-  }
-
   glVertexAttribPointer(
       aTexCoord, TEXCOORD_SIZE_FLOATS,
       GL_FLOAT, GL_FALSE,
@@ -635,6 +592,26 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
   }
 
   glBindVertexArray(0);
+}
+
+void Glade::Renderer::setTexture2DUniformToShader(const std::string &uniformName, GLuint textureVideoBufferHandle, unsigned textureUnitNumber, ShaderProgram &program)
+{
+  if (!textureVideoBufferHandle)
+    return;
+
+  glActiveTexture(GL_TEXTURE0 + textureUnitNumber);
+  glBindTexture(GL_TEXTURE_2D, textureVideoBufferHandle);
+
+  if (firstCycle) {
+    checkGLError();
+  }
+
+  GLuint location = glGetUniformLocation(program.gpuHandle, uniformName.c_str());
+  glUniform1i(location, textureUnitNumber);
+
+  if (firstCycle) {
+    checkGLError();
+  }
 }
 
 void Glade::Renderer::writeUniformsToVideoMemory(Drawable *drawable, ShaderProgram &program)
@@ -681,6 +658,22 @@ void Glade::Renderer::writeUniformsToVideoMemory(Drawable *drawable, ShaderProgr
     uniformHandle = program.getUniformHandle(v4i->first);
     glUniform4f(uniformHandle, v4i->second.x, v4i->second.y, v4i->second.z, v4i->second.w);
     ++v4i;
+  }
+
+  Drawable::Shader2DTextureUniformsCI tex2di = drawable->texture2DUniformsBegin();
+
+  unsigned i = 0;
+
+  while (tex2di != drawable->texture2DUniformsEnd()) {
+    uniformHandle = program.getUniformHandle(tex2di->first);
+    std::shared_ptr<Texture> texture = tex2di->second;
+    if (!texture->hasVideoBufferHandle()) {
+      moveTextureIntoVideoMemory(texture);
+    }
+
+    setTexture2DUniformToShader(tex2di->first, texture->getVideoBufferHandle(), i, program);
+    ++i;
+    ++tex2di;
   }
 }
 

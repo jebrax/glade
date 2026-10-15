@@ -262,7 +262,7 @@ GladeObject::Drawables* FreetypeFont::createDrawablesForString(const std::string
       1
     );
     
-    drawable->setTexture(texture);
+    drawable->setUniform("uTextureSampler0", texture);
     
     drawable->getTransform()->getPosition()->x =
       penPositionXCoords

@@ -97,7 +97,8 @@ namespace Glade {
     void bindBuffers(Mesh *mesh);
     uint32_t loadShader(uint32_t type, std::vector<char> &shader_source);
     void moveIntoVideoMemory(std::shared_ptr<Mesh> mesh);
-    void moveIntoVideoMemory(std::shared_ptr<Texture> texture);
+    void moveTextureIntoVideoMemory(std::shared_ptr<Texture> texturePtr);
+    void setTexture2DUniformToShader(const std::string &uniformName, uint32_t textureVideoBufferHandle, unsigned textureUnitNumber, ShaderProgram &program);
     void writeUniformsToVideoMemory(Drawable *drawable, ShaderProgram &program);
 
     int checkGLError();
