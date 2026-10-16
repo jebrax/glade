@@ -1,40 +1,47 @@
 #pragma once
 
-#include <ctime>
+#include <chrono>
 
 class Timer {
 private:
-  bool paused, autoReset;
-  clock_t baseClockstamp;
+  using Clock = std::chrono::steady_clock;
+
+  bool paused, autoReset, started;
+  Clock::time_point baseTimestamp;
 public:
   Timer(bool auto_reset = false):
     paused(false),
-    baseClockstamp(0L),
-    autoReset(auto_reset)
+    autoReset(auto_reset),
+    started(false),
+    baseTimestamp()
   {}
   
   /**
-   * Returns number of milliseconds have passed since the last call to the function reset() or 0 if the timer is paused or reset() was never called
+   * Returns elapsed wall-clock milliseconds since reset(), or 0 if paused or
+   * never started. Auto-reset timers start on their first query and reset on
+   * every subsequent query, including while paused.
    */
   float getDeltaTime(void) {
-    if (baseClockstamp == 0L) { // reset was never called
+    if (!started) {
       if (autoReset)
         reset();
 
       return 0;
     }
     
-    clock_t currentClockstamp = clock();
-    clock_t deltaClock = currentClockstamp - baseClockstamp;
+    const auto now = Clock::now();
+    const float milliseconds =
+      std::chrono::duration<float, std::milli>(now - baseTimestamp).count();
         
     if (autoReset)
-      reset();
+      baseTimestamp = now;
 
-    return paused ? 0.0f: ((float)(1000 * deltaClock) / (float) CLOCKS_PER_SEC);
+    return paused ? 0.0f : milliseconds;
   }
   
   void reset(void) {
-    baseClockstamp = clock();
+    baseTimestamp = Clock::now();
+    started = true;
   }
   
   void pause(void) {
@@ -42,6 +49,7 @@ public:
   }
   
   void unpause(void) {
+    // Preserve the original semantics: unpausing does not reset elapsed time.
     paused = false;
   }
 };
