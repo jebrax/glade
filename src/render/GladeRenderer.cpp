@@ -671,6 +671,22 @@ void Glade::Renderer::writeUniformsToVideoMemory(Drawable *drawable, ShaderProgr
       moveTextureIntoVideoMemory(texture);
     }
 
+    // The stock frame shader addresses the primary texture as a uniform grid.
+    if (tex2di->first == "uTextureSampler0") {
+      TextureTransform* transform = drawable->getTexture2DTransform();
+      const int frame = transform->getCurrentFrameNumber(*texture);
+      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordScaleX0"),
+          texture->texCoordFrameWidth * transform->textureScaleX *
+          transform->getTextureScaleXModifierForFrame(*texture));
+      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordScaleY0"),
+          texture->texCoordFrameHeight * transform->textureScaleY *
+          transform->getTextureScaleYModifierForFrame(*texture));
+      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetX0"),
+          frame * texture->texCoordFrameWidth);
+      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetY0"),
+          transform->getCurrentAnimationNumber(*texture) * texture->texCoordFrameHeight);
+    }
+
     setTexture2DUniformToShader(tex2di->first, texture->getVideoBufferHandle(), i, program);
     ++i;
     ++tex2di;
