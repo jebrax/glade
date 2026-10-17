@@ -84,11 +84,12 @@ int main(int argc, char** argv) {
             source[i+2] = 70; source[i+3] = 255;
         }
         auto texture = std::make_shared<Texture>(8, 8, source);
-        auto atlas = std::make_shared<const Glade::TextureAtlas>(texture,
+        Glade::TextureAtlasMetadata metadata{"",
             std::vector<Glade::SpriteFrame>{{1, 2, 2, 3, 0.5, 2}, {4, 1, 4, 5, 3, 4}},
             Glade::TextureAtlas::Names{{"small", 0}, {"large", 1}},
             std::vector<Glade::SpriteAnimation>{{{{0, 10}, {1, 20}}, true}},
-            Glade::TextureAtlas::Names{{"walk", 0}});
+            Glade::TextureAtlas::Names{{"walk", 0}}};
+        auto atlas = std::make_shared<const Glade::TextureAtlas>(texture, metadata);
         Drawable drawable(resources.getMesh(Glade::ResourceManager::MESH_RECTANGLE),
             resources.getShaderProgram("texcoord_frames.vertex.glsl", "textured.fragment.glsl"));
         drawable.getTransform()->setScale(0.1f, 0.1f, 1);

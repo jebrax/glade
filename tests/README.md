@@ -12,7 +12,9 @@ clang++ -std=c++20 -Wall -Wextra -Werror \
 The test supplies a no-op logging function and requires no OpenGL context.
 Texture's existing disabled pixel cleanup is unchanged by this work.
 
-The atlas constructor accepts already resolved durations and frame indices;
+The atlas constructor accepts a TextureAtlasMetadata reference containing
+already resolved durations and frame indices. It validates before consuming the
+metadata containers via moves; validation failure preserves the metadata.
 JSON parsing, including defaultFrameDuration fallback and duplicate-key
 validation, is handled by GladeTexAtlasReader and tested separately. TextureAtlas exposes only
 const definitions. Keep it shared through `shared_ptr<const TextureAtlas>`;
@@ -75,3 +77,23 @@ explicit durations, shared frames, relative image paths, resource cache reuse,
 retry after failure, and invalid format/version, types, ranges, references,
 duplicate keys, syntax, encoding, and durations. The host must add the shared
 vendor RapidJSON include directory privately to Glade's compiler includes.
+
+## Standalone metadata parser test
+
+`glade_atlas_metadata_test` links only GladeTexAtlasReader.cpp and the standard
+library, without ResourceManager, FileManager, Texture, image decoding, or GL.
+The host supplies RAPIDJSON_INCLUDE_DIR to build it. It can also be built directly:
+
+```sh
+clang++ -std=c++20 -Iinclude -I../../vendor/rapidjson/include \
+  tests/GladeTexAtlasMetadataTest.cpp src/util/GladeTexAtlasReader.cpp \
+  -o /tmp/glade-atlas-metadata-test
+/tmp/glade-atlas-metadata-test
+```
+
+`GladeTexAtlasReader::read(json, metadata)` replaces the output reference only
+on success. ResourceManager adds filename context to errors, resolves the
+relative texture path, and loads the image before constructing the atlas.
+The CPU atlas tests also check container storage is transferred without copies,
+that the atlas survives metadata destruction, and that constructor validation
+failure leaves metadata unchanged.

@@ -1,5 +1,7 @@
 #include <glade/util/ResourceManager.h>
 #include <glade/util/GladeTexAtlasReader.h>
+#include <glade/render/TextureAtlas.h>
+#include <filesystem>
 #include <glade/util/Path.h>
 #include <glade/util/DesktopFileManager.h>
 #include <glade/util/WavefrontObjReader.h>
@@ -44,11 +46,29 @@ std::shared_ptr<const Glade::TextureAtlas> Glade::ResourceManager::getTextureAtl
   const auto existing = textureAtlases.find(filename);
   if (existing != textureAtlases.end()) return existing->second;
 
-  std::vector<char> json;
-  fileManager->getFileContents(filename, json);
-  auto atlas = GladeTexAtlasReader::read(json, filename, *this);
-  textureAtlases.emplace(filename, atlas);
-  return atlas;
+  try {
+    std::vector<char> json;
+    fileManager->getFileContents(filename, json);
+    TextureAtlasMetadata metadata;
+    GladeTexAtlasReader::read(json, metadata);
+
+    // Image paths are relative to the metadata file, not the process directory.
+    const std::filesystem::path imagePath(Path(metadata.textureFilename).toString());
+    if (imagePath.is_absolute() || imagePath.has_root_name())
+      throw std::invalid_argument("texture must be a relative path");
+    const auto resolved = (std::filesystem::path(filename.toString()).parent_path() /
+                           imagePath).lexically_normal();
+    auto texture = getTexture(Path(resolved.string()));
+    auto atlas = std::make_shared<const TextureAtlas>(texture, metadata);
+    textureAtlases.emplace(filename, atlas);
+    return atlas;
+  } catch (GladeException& error) {
+    std::string message = "GladeTexAtlas " + filename.toString() + ": " + error.getMessage();
+    throw GladeException(message);
+  } catch (const std::exception& error) {
+    std::string message = "GladeTexAtlas " + filename.toString() + ": " + error.what();
+    throw GladeException(message);
+  }
 }
 
 std::shared_ptr<Glade::Mesh> Glade::ResourceManager::getMesh(MeshType type)

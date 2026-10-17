@@ -24,3 +24,10 @@ if(TARGET glade)
     target_compile_features(glade_atlas_reader_test PRIVATE cxx_std_20)
     target_link_libraries(glade_atlas_reader_test PRIVATE glade)
 endif()
+
+if(RAPIDJSON_INCLUDE_DIR)
+    add_executable(glade_atlas_metadata_test GladeTexAtlasMetadataTest.cpp
+        ../src/util/GladeTexAtlasReader.cpp)
+    target_compile_features(glade_atlas_metadata_test PRIVATE cxx_std_20)
+    target_include_directories(glade_atlas_metadata_test PRIVATE ../include "${RAPIDJSON_INCLUDE_DIR}")
+endif()

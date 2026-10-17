@@ -17,6 +17,19 @@ void rejects(Function function) {
     assert(rejected);
 }
 
+std::shared_ptr<const Glade::TextureAtlas> makeAtlas(std::shared_ptr<Texture> texture,
+    const std::vector<Glade::SpriteFrame>& frames, const Glade::TextureAtlas::Names& names,
+    const std::vector<Glade::SpriteAnimation>& animations,
+    const Glade::TextureAtlas::Names& animationNames) {
+    Glade::TextureAtlasMetadata metadata{"", frames, names, animations, animationNames};
+    const auto* frameStorage = metadata.frames.data();
+    const auto* entryStorage = metadata.animations[0].frames.data();
+    auto atlas = std::make_shared<const Glade::TextureAtlas>(texture, metadata);
+    assert(&atlas->getFrame(0) == frameStorage);
+    assert(atlas->getAnimation(0).frames.data() == entryStorage);
+    return atlas; // Metadata can be destroyed independently of the atlas.
+}
+
 int main() {
     using namespace Glade;
     std::vector<unsigned char> pixels(100 * 80 * 4, 255);
@@ -31,7 +44,7 @@ int main() {
         {{{1, 25}}, true}
     };
     const TextureAtlas::Names animationNames = {{"loop", 0}, {"once", 1}, {"single", 2}};
-    auto atlas = std::make_shared<const TextureAtlas>(texture, frames, names,
+    auto atlas = makeAtlas(texture, frames, names,
                                                      animations, animationNames);
     assert(atlas->getTexture() == texture);
     assert(atlas->getFrame("punch").pivotX == -2.5);
@@ -60,20 +73,25 @@ int main() {
     rejects<std::invalid_argument>([&] { first.update(-1); });
     rejects<std::invalid_argument>([&] { first.update(std::numeric_limits<double>::infinity()); });
     rejects<std::invalid_argument>([&] { SpriteAnimator invalid(nullptr); });
+    TextureAtlasMetadata retained{"", frames, names, animations, animationNames};
+    retained.frames[0].width = 101;
+    const auto* retainedStorage = retained.frames.data();
+    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, retained); });
+    assert(retained.frames.data() == retainedStorage && retained.frames[0].width == 101);
     auto invalidFrame = frames; invalidFrame[0].width = 101;
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, invalidFrame, names, animations, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, invalidFrame, names, animations, animationNames); });
     invalidFrame = frames; invalidFrame[0].pivotX = std::numeric_limits<double>::quiet_NaN();
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, invalidFrame, names, animations, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, invalidFrame, names, animations, animationNames); });
     auto invalidAnimation = animations; invalidAnimation[0].frames[0].frameIndex = 2;
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, frames, names, invalidAnimation, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, frames, names, invalidAnimation, animationNames); });
     invalidAnimation = animations; invalidAnimation[0].frames[0].durationMs = 0;
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, frames, names, invalidAnimation, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, frames, names, invalidAnimation, animationNames); });
     invalidAnimation = animations; invalidAnimation[0].frames.clear();
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, frames, names, invalidAnimation, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, frames, names, invalidAnimation, animationNames); });
     auto invalidNames = names; invalidNames["punch"] = 0;
-    rejects<std::invalid_argument>([&] { TextureAtlas invalid(texture, frames, invalidNames, animations, animationNames); });
+    rejects<std::invalid_argument>([&] { auto invalid = makeAtlas(texture, frames, invalidNames, animations, animationNames); });
     const std::vector<SpriteAnimation> fractional = {{{{0, 0.5}, {1, 1.25}}, true}};
-    auto fractionalAtlas = std::make_shared<const TextureAtlas>(texture, frames, names,
+    auto fractionalAtlas = makeAtlas(texture, frames, names,
         fractional, TextureAtlas::Names{{"fractional", 0}});
     SpriteAnimator fractionalPlayer(fractionalAtlas);
     fractionalPlayer.play("fractional");

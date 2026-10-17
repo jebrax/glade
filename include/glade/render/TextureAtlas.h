@@ -9,8 +9,7 @@
 #include <vector>
 
 #include <glade/render/Texture.h>
-#include <glade/render/SpriteFrame.h>
-#include <glade/render/SpriteAnimation.h>
+#include <glade/render/TextureAtlasMetadata.h>
 
 namespace Glade {
 
@@ -18,40 +17,16 @@ namespace Glade {
 // stable vector indices; animations reference these indices, not copied frames.
 class TextureAtlas {
 public:
-    using Names = std::map<std::string, std::size_t>;
+    using Names = TextureAtlasMetadata::Names;
 
-    TextureAtlas(std::shared_ptr<Texture> texture,
-                 std::vector<SpriteFrame> frames, Names frameNames,
-                 std::vector<SpriteAnimation> animations, Names animationNames)
-        : texture_(std::move(texture)), frames_(std::move(frames)),
-          frameNames_(std::move(frameNames)), animations_(std::move(animations)),
-          animationNames_(std::move(animationNames)) {
-        if (!texture_) throw std::invalid_argument("Atlas requires a texture");
-        validateNames(frameNames_, frames_.size());
-        validateNames(animationNames_, animations_.size());
-        for (const auto& frame : frames_) {
-            if (frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 ||
-                static_cast<unsigned>(frame.x) > texture_->textureWidth ||
-                static_cast<unsigned>(frame.y) > texture_->textureHeight ||
-                static_cast<unsigned>(frame.width) > texture_->textureWidth - frame.x ||
-                static_cast<unsigned>(frame.height) > texture_->textureHeight - frame.y ||
-                !std::isfinite(frame.pivotX) || !std::isfinite(frame.pivotY))
-                throw std::invalid_argument("Invalid atlas frame rectangle or pivot");
-        }
-        for (const auto& animation : animations_) {
-            if (animation.frames.empty())
-                throw std::invalid_argument("Animation must contain frames");
-            double total = 0;
-            for (const auto& entry : animation.frames) {
-                if (entry.frameIndex >= frames_.size() ||
-                    !std::isfinite(entry.durationMs) || entry.durationMs <= 0)
-                    throw std::invalid_argument("Invalid animation frame reference or duration");
-                total += entry.durationMs;
-            }
-            if (!std::isfinite(total))
-                throw std::invalid_argument("Animation duration overflow");
-        }
-    }
+    // Consumes metadata containers without copying. Validation happens before
+    // moving, so validation failure leaves metadata unchanged. On success the
+    // metadata remains valid, but its moved-from containers are unspecified.
+    TextureAtlas(std::shared_ptr<Texture> texture, TextureAtlasMetadata& metadata)
+        : texture_(validate(std::move(texture), metadata)),
+          frames_(std::move(metadata.frames)), frameNames_(std::move(metadata.frameNames)),
+          animations_(std::move(metadata.animations)),
+          animationNames_(std::move(metadata.animationNames)) {}
 
     const std::shared_ptr<Texture>& getTexture() const { return texture_; }
     const SpriteFrame& getFrame(std::size_t index) const { return frames_.at(index); }
@@ -78,15 +53,18 @@ private:
     const std::vector<SpriteAnimation> animations_;
     const Names animationNames_;
 
-    static void validateNames(const Names& names, std::size_t count) {
-        if (count == 0 || names.size() != count)
-            throw std::invalid_argument("Every atlas definition requires a unique name");
-        std::vector<bool> seen(count, false);
-        for (const auto& [name, index] : names) {
-            if (name.empty() || index >= count || seen[index])
-                throw std::invalid_argument("Invalid atlas name or index");
-            seen[index] = true;
+    static std::shared_ptr<Texture> validate(std::shared_ptr<Texture> texture,
+                                            const TextureAtlasMetadata& metadata) {
+        if (!texture) throw std::invalid_argument("Atlas requires a texture");
+        metadata.validate();
+        for (const auto& frame : metadata.frames) {
+            if (static_cast<unsigned>(frame.x) > texture->textureWidth ||
+                static_cast<unsigned>(frame.y) > texture->textureHeight ||
+                static_cast<unsigned>(frame.width) > texture->textureWidth - frame.x ||
+                static_cast<unsigned>(frame.height) > texture->textureHeight - frame.y)
+                throw std::invalid_argument("Atlas frame rectangle exceeds texture bounds");
         }
+        return texture;
     }
 };
 

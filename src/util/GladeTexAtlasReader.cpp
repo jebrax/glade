@@ -1,7 +1,5 @@
 #include <glade/util/GladeTexAtlasReader.h>
-#include <glade/util/ResourceManager.h>
-#include <glade/util/Path.h>
-#include <glade/render/TextureAtlas.h>
+#include <glade/render/TextureAtlasMetadata.h>
 #include <glade/exception/GladeException.h>
 
 // Assimp may export a different RapidJSON version from its static library.
@@ -12,7 +10,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -71,8 +68,8 @@ void rejectDuplicateKeys(const Value& root) {
 }
 } // namespace
 
-std::shared_ptr<const Glade::TextureAtlas> Glade::GladeTexAtlasReader::read(
-    const std::vector<char>& json, const Path& filename, ResourceManager& resources) {
+void Glade::GladeTexAtlasReader::read(
+    const std::vector<char>& json, TextureAtlasMetadata& metadata) {
     try {
         if (json.empty()) fail("Empty JSON document");
         if (std::find(json.begin(), json.end(), '\0') != json.end())
@@ -88,17 +85,10 @@ std::shared_ptr<const Glade::TextureAtlas> Glade::GladeTexAtlasReader::read(
             fail("Unsupported atlas format");
         if (integer(member(root, "version", "Atlas"), "version") != 1)
             fail("Unsupported GladeTexAtlas version");
-        const auto image = string(member(root, "texture", "Atlas"), "texture");
-        // Path normalises separators for the host. Resolve from the JSON file,
-        // not the executable or process working directory.
-        const std::filesystem::path imagePath(Path(image).toString());
-        if (imagePath.is_absolute() || imagePath.has_root_name())
-            fail("texture must be a relative path");
-        const auto resolved = (std::filesystem::path(filename.toString()).parent_path() /
-                               imagePath).lexically_normal();
-
-        std::vector<SpriteFrame> frames;
-        TextureAtlas::Names frameNames;
+        TextureAtlasMetadata parsed;
+        parsed.textureFilename = string(member(root, "texture", "Atlas"), "texture");
+        auto& frames = parsed.frames;
+        auto& frameNames = parsed.frameNames;
         const auto& definitions = member(root, "frames", "Atlas");
         if (!definitions.IsObject() || definitions.ObjectEmpty()) fail("frames must be a non-empty object");
         for (auto it = definitions.MemberBegin(); it != definitions.MemberEnd(); ++it) {
@@ -118,8 +108,8 @@ std::shared_ptr<const Glade::TextureAtlas> Glade::GladeTexAtlasReader::read(
             frameNames.emplace(name, frames.size()); frames.push_back(frame);
         }
 
-        std::vector<SpriteAnimation> animations;
-        TextureAtlas::Names animationNames;
+        auto& animations = parsed.animations;
+        auto& animationNames = parsed.animationNames;
         const auto& definitionsA = member(root, "animations", "Atlas");
         if (!definitionsA.IsObject() || definitionsA.ObjectEmpty()) fail("animations must be a non-empty object");
         for (auto it = definitionsA.MemberBegin(); it != definitionsA.MemberEnd(); ++it) {
@@ -143,13 +133,10 @@ std::shared_ptr<const Glade::TextureAtlas> Glade::GladeTexAtlasReader::read(
             }
             animationNames.emplace(name, animations.size()); animations.push_back(std::move(animation));
         }
-        return std::make_shared<const TextureAtlas>(resources.getTexture(Path(resolved.string())),
-            std::move(frames), std::move(frameNames), std::move(animations), std::move(animationNames));
-    } catch (GladeException& error) {
-        std::string message = "GladeTexAtlas " + filename.toString() + ": " + error.getMessage();
-        throw GladeException(message);
+        parsed.validate();
+        metadata = std::move(parsed);
     } catch (const std::exception& error) {
-        std::string message = "GladeTexAtlas " + filename.toString() + ": " + error.what();
+        std::string message = std::string("GladeTexAtlas: ") + error.what();
         throw GladeException(message);
     }
 }

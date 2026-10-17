@@ -90,10 +90,15 @@ multiple images per atlas, collision shapes, or hitboxes.
 
 `ResourceManager::getTextureAtlas(filename)` returns a cached
 `shared_ptr<const TextureAtlas>`. It reads through FileManager and delegates
-parsing to `glade/util/GladeTexAtlasReader`. The reader resolves texture paths
-relative to the metadata file and loads the image through ResourceManager's
-existing texture cache. Frame references and duration defaults are resolved
-before constructing the atlas. Invalid metadata raises GladeException with the
+parsing to `glade/util/GladeTexAtlasReader`. The reader fills a caller-supplied
+`TextureAtlasMetadata&` with the texture filename, frames, animations, and name
+maps; it has no resource-loading dependencies. Frame references and duration
+defaults are resolved during parsing. ResourceManager resolves the texture path
+relative to the metadata file, loads the image through its existing texture
+cache, and constructs TextureAtlas with the texture and metadata reference.
+TextureAtlas validates the metadata and image bounds before moving the metadata
+containers into its own members without deep copies. The temporary metadata
+is then discarded. Invalid metadata raises GladeException with the
 metadata filename and a validation message (syntax errors include byte offsets).
 Failed atlas loads are not cached.
 
