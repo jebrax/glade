@@ -11,56 +11,22 @@ class Texture {
 public:
     const unsigned int textureWidth;
     const unsigned int textureHeight;
-    const unsigned char numberOfFrames;
-    const unsigned char numberOfAnimations;
-    const float frameWidth;
-    const float frameHeight;
-    const float texCoordFrameWidth;  // Ширина кадра в координатах S
-    const float texCoordFrameHeight; // Высота кадра в координатах T
-  
+
 private:
   unsigned char* data;
   int bufferId;
   
 public:
-    Texture(int texWidth, int texHeight, int numOfAnimations, int numOfFrames, std::vector<unsigned char> &textureData):
-      data(NULL),
-      bufferId(-1),
-      textureWidth(texWidth),
-      textureHeight(texHeight),
-      numberOfFrames(numOfFrames),
-      numberOfAnimations(numOfAnimations),
-      frameWidth((float) textureWidth / (float) numberOfFrames),
-      frameHeight((float) textureHeight / (float) numberOfAnimations),
-      texCoordFrameWidth(1 / (float) numberOfFrames),
-      texCoordFrameHeight(1 / (float) numberOfAnimations)
-    {
-      if (texWidth <= 0 || texHeight <= 0 || numberOfAnimations <= 0 || numberOfFrames <= 0) {
-         throw GladeException("Texture::Texture(): Incorrect parameters for texture constructor method");
-      }
-      
-      setData(&textureData[0], textureData.size());
-    }
-    
-    Texture(int texWidth, int texHeight, int numOfAnimations, int numOfFrames, unsigned char *textureData, unsigned int size):
-      data(NULL),
-      bufferId(-1),
-      textureWidth(texWidth),
-      textureHeight(texHeight),
-      numberOfFrames(numOfFrames),
-      numberOfAnimations(numOfAnimations),
-      frameWidth((float) textureWidth / (float) numberOfFrames),
-      frameHeight((float) textureHeight / (float) numberOfAnimations),
-      texCoordFrameWidth(1 / (float) numberOfFrames),
-      texCoordFrameHeight(1 / (float) numberOfAnimations)
-    {
-      if (texWidth <= 0 || texHeight <= 0 || numberOfAnimations <= 0 || numberOfFrames <= 0) {
-         throw GladeException("Texture::Texture(): Incorrect parameters for texture constructor");
-      }
-      
+    Texture(int texWidth, int texHeight, const std::vector<unsigned char>& textureData)
+      : Texture(texWidth, texHeight, textureData.data(), textureData.size()) {}
+
+    Texture(int texWidth, int texHeight, const unsigned char* textureData, unsigned int size)
+      : textureWidth(texWidth), textureHeight(texHeight), data(nullptr), bufferId(-1) {
+      if (texWidth <= 0 || texHeight <= 0 || textureData == nullptr || size == 0)
+        throw GladeException("Texture requires positive dimensions and pixel data");
       setData(textureData, size);
     }
-        
+
     ~Texture(void) {
       erase();
     }

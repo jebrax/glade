@@ -15,6 +15,7 @@ class Font;
 namespace Glade
 {
   class Mesh;
+  class TextureAtlas;
   
   class ResourceManager
   {
@@ -50,6 +51,7 @@ namespace Glade
       typedef std::map<Path, std::shared_ptr<Font> >           DynamicFonts;
       typedef DynamicFonts::iterator                           DynamicFontsI;
 
+      std::map<Path, std::shared_ptr<const TextureAtlas>> textureAtlases;
       Textures        textures;
       BuiltinMeshes   builtInMeshes;
       Meshes          meshes;
@@ -60,7 +62,8 @@ namespace Glade
  
     public:
       ResourceManager(FileManager *file_manager);
-      std::shared_ptr<Texture> getTexture(const Path &filename, int frameWidth = 0, int frameHeight = 0);
+      std::shared_ptr<Texture> getTexture(const Path &filename);
+      std::shared_ptr<const TextureAtlas> getTextureAtlas(const Path &filename);
       std::shared_ptr<Mesh> getMesh(MeshType type);
       std::shared_ptr<Mesh> getMesh(const Path &filename);
       std::shared_ptr<ShaderProgram> getShaderProgram(const Path &vertex_shader_filename, const Path &fragment_shader_filename);
@@ -72,7 +75,7 @@ namespace Glade
     
     private:
       std::shared_ptr<ShaderProgram> loadShaderProgram(const Path &vertex_shader_filename, const Path &fragment_shader_filename);
-      std::shared_ptr<Texture> loadTexture(const Path &filename, int frameWidth = 0, int frameHeight = 0);
+      std::shared_ptr<Texture> loadTexture(const Path &filename);
       std::shared_ptr<Mesh> loadMesh(MeshType type);
       std::shared_ptr<Mesh> loadMesh(const Path &filename);
       std::shared_ptr<Mesh> loadMeshAssimp(const Path &filename);

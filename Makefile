@@ -55,6 +55,10 @@ ${GLADE_BUILD_DIR}/util/ResourceManager.o: src/util/ResourceManager.cpp
 	mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -I${VENDOR}/assimp/include -I${VENDOR}/freetype/include -I${VENDOR}/lodepng -c $< -o $@
 
+${GLADE_BUILD_DIR}/util/GladeTexAtlasReader.o: src/util/GladeTexAtlasReader.cpp
+	mkdir -p $(@D)
+	${CXX} ${CXXFLAGS} -I${VENDOR}/rapidjson/include -c $< -o $@
+
 ${GLADE_BUILD_DIR}/generation/noise.o: src/generation/noise.cpp
 	mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -I${VENDOR}/PerlinNoise/include -c $< -o $@

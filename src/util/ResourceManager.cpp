@@ -1,4 +1,5 @@
 #include <glade/util/ResourceManager.h>
+#include <glade/util/GladeTexAtlasReader.h>
 #include <glade/util/Path.h>
 #include <glade/util/DesktopFileManager.h>
 #include <glade/util/WavefrontObjReader.h>
@@ -25,9 +26,7 @@ Glade::ResourceManager::ResourceManager(FileManager *file_manager):
 {
 }
 
-// TODO frame width and frame height must be stored within the texture on the disk.
-// For now we enforce frame dimensions when the texture is initially loaded from disk
-std::shared_ptr<Texture> Glade::ResourceManager::getTexture(const Path &filename, int frameWidth, int frameHeight)
+std::shared_ptr<Texture> Glade::ResourceManager::getTexture(const Path &filename)
 {
   TexturesI i = textures.find(filename);
   
@@ -35,9 +34,21 @@ std::shared_ptr<Texture> Glade::ResourceManager::getTexture(const Path &filename
     return i->second;
   }
   
-  std::shared_ptr<Texture> texture = loadTexture(filename, frameWidth, frameHeight);
+  std::shared_ptr<Texture> texture = loadTexture(filename);
   textures[filename] = texture;
   return texture;
+}
+
+std::shared_ptr<const Glade::TextureAtlas> Glade::ResourceManager::getTextureAtlas(const Path &filename)
+{
+  const auto existing = textureAtlases.find(filename);
+  if (existing != textureAtlases.end()) return existing->second;
+
+  std::vector<char> json;
+  fileManager->getFileContents(filename, json);
+  auto atlas = GladeTexAtlasReader::read(json, filename, *this);
+  textureAtlases.emplace(filename, atlas);
+  return atlas;
 }
 
 std::shared_ptr<Glade::Mesh> Glade::ResourceManager::getMesh(MeshType type)
@@ -138,12 +149,8 @@ std::shared_ptr<ShaderProgram> Glade::ResourceManager::loadShaderProgram(const P
   return shaderProgram;
 }
 
-std::shared_ptr<Texture> Glade::ResourceManager::loadTexture(const Path &filename, int frameWidth, int frameHeight)
+std::shared_ptr<Texture> Glade::ResourceManager::loadTexture(const Path &filename)
 {
-  if (frameWidth < 0 || frameHeight < 0) {
-    throw GladeException("Provided frameWidth and frameHeight must not be less than zero");
-  }
-  
   std::vector<unsigned char> pngData;
   fileManager->getFileContents(filename, pngData, true);
   
@@ -159,27 +166,7 @@ std::shared_ptr<Texture> Glade::ResourceManager::loadTexture(const Path &filenam
     throw GladeException(exceptionText.c_str());
   }
   
-  if (frameWidth == 0) {  // if the user doesn't know frame dimensions
-    frameWidth = width;   // we assume the whole texture is one frame
-  } 
-  
-  if (frameHeight == 0) {
-    frameHeight = height;
-  }
-  
-  int numberOfFrames = width / frameWidth;
-  numberOfFrames = numberOfFrames < 1 ? 1 : numberOfFrames;
-  
-  int numberOfAnimations = height / frameHeight;
-  numberOfAnimations = numberOfAnimations < 1 ? 1 : numberOfAnimations;
-  
-  return std::shared_ptr<Texture>(new Texture(
-    width,
-    height,
-    numberOfAnimations,
-    numberOfFrames,
-    pixels
-  ));
+  return std::make_shared<Texture>(width, height, pixels);
 }
 
 std::shared_ptr<Glade::Mesh> Glade::ResourceManager::loadMesh(MeshType type)
@@ -294,7 +281,7 @@ std::shared_ptr<Font> Glade::ResourceManager::loadBitmapFont(const Path &atlas_f
   int cellWidth           = ::atoi(parsedCsv[2][1].c_str());
   int cellHeight          = ::atoi(parsedCsv[3][1].c_str());
   
-  std::shared_ptr<Texture> atlas = getTexture(atlas_filename, cellWidth, cellHeight);
+  std::shared_ptr<Texture> atlas = getTexture(atlas_filename);
           
   if (declaredAtlasWidth != atlas->textureWidth) {
     throw GladeException("CSV data doesn't match atlas data");

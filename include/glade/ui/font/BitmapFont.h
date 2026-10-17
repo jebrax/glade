@@ -98,10 +98,11 @@ class BitmapFont: public Font
 
         rectangle->setUniform("uTextureSampler0", atlas);
 //      rectangle->setConstantColor((float)(rand() % 100)/100.0f, (float)(rand() % 100)/100.0f, (float)(rand() % 100)/100.0f, 0.5f);
-        rectangle->getTexture2DTransform()->setCurrentFrameNumber(glyphPosition.x);
-        rectangle->getTexture2DTransform()->setCurrentAnimationNumber(glyphPosition.y);
-        rectangle->getTexture2DTransform()->setCurrentFrameWidth(glyphWidth);
-        rectangle->getTexture2DTransform()->setCurrentFrameHeight(glyphHeight);
+        auto* uv = rectangle->getTexture2DTransform();
+        uv->textureScaleX = float(glyphWidth) / atlas->textureWidth;
+        uv->textureScaleY = float(glyphHeight) / atlas->textureHeight;
+        uv->textureOffsetX = float(glyphPosition.x * cellWidth) / atlas->textureWidth;
+        uv->textureOffsetY = float(glyphPosition.y * cellHeight) / atlas->textureHeight;
         
         text->push_back(rectangle);
       }

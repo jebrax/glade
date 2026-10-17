@@ -3,6 +3,8 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <optional>
+#include "SpriteAnimator.h"
 
 #include "glade/math/Transform.h"
 #include "meshes/Mesh.h"
@@ -43,6 +45,7 @@ protected:
   Transform transform;
   std::shared_ptr<Glade::Mesh> mesh;
   TextureTransform texture2DTransform;
+  std::optional<Glade::SpriteAnimator> spriteAnimator;
   std::shared_ptr<ShaderProgram> shaderProgram;
 
 private:
@@ -183,6 +186,19 @@ public:
   TextureTransform* getTexture2DTransform(void) {
     return &texture2DTransform;
   }
+
+  // Sprite drawables require the stock Rectangle and texcoord_frames shader.
+  // Playback advances only when the owner calls animator.update(deltaMs).
+  Glade::SpriteAnimator& setSpriteAtlas(std::shared_ptr<const Glade::TextureAtlas> atlas) {
+    return spriteAnimator.emplace(std::move(atlas));
+  }
+  Glade::SpriteAnimator* getSpriteAnimator() {
+    return spriteAnimator ? &*spriteAnimator : nullptr;
+  }
+  const Glade::SpriteAnimator* getSpriteAnimator() const {
+    return spriteAnimator ? &*spriteAnimator : nullptr;
+  }
+  void clearSpriteAnimator() { spriteAnimator.reset(); }
 
   void setTransform(const Transform &transform) {
     this->transform = transform;

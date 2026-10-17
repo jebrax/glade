@@ -10,6 +10,7 @@
 #include "glade/math/Matrix.h"
 #include "glade/render/GladeRenderer.h"
 #include "glade/render/Drawable.h"
+#include "glade/render/meshes/Rectangle.h"
 #include "glade/render/ShaderProgram.h"
 #include "glade/render/Perception.h"
 #include "glade/math/Vector.h"
@@ -90,7 +91,6 @@ void Glade::Renderer::remove(GladeObject *sceneObject)
   for (GladeObject::DrawablesI di = drawables->begin(); di != drawables->end(); di++) {
     removeFromVideoMemory(**di);
     checkGLError();
-    (*di)->getTexture2DTransform()->removeAnimationCallbacks();
   }
   
   sceneObjects.erase(oi);
@@ -102,18 +102,7 @@ void Glade::Renderer::clear(void)
   firstCycle = true;
   removeAllObjectsFromVideoMemory();
 
-  GladeObject::Drawables* drawables;
-  std::vector<GladeObject*>::iterator oi = sceneObjects.begin(); // must be a 'set'
-
-  while (oi != sceneObjects.end()) {
-    drawables = (*oi)->getDrawables();
-    
-    for (GladeObject::DrawablesI di = drawables->begin(); di != drawables->end(); di++) {
-      (*di)->getTexture2DTransform()->removeAnimationCallbacks();
-    }
-    
-    oi = sceneObjects.erase(oi);
-  }
+  sceneObjects.clear();
 
   checkGLError();
   
@@ -433,6 +422,15 @@ void Glade::Renderer::removeFromVideoMemory(Drawable &drawable)
 {
   std::shared_ptr<Mesh> mesh = drawable.getMesh();
   
+  if (const auto* animator = drawable.getSpriteAnimator()) {
+    const auto& texture = animator->getAtlas()->getTexture();
+    if (texture->hasVideoBufferHandle()) {
+      const GLuint id = texture->getVideoBufferHandle();
+      glDeleteTextures(1, &id);
+      texture->setVideoBufferHandle(-1);
+    }
+  }
+
   Drawable::Shader2DTextureUniformsCI tex2di = drawable.texture2DUniformsBegin();
 
   while (tex2di != drawable.texture2DUniformsEnd()) {
@@ -481,6 +479,9 @@ void Glade::Renderer::draw(GladeObject::DrawablesI di, Transform &transform)
     log("No perception - no drawing");
     return;
   }
+
+  if (const auto* animator = (*di)->getSpriteAnimator(); animator && !animator->hasFrame())
+    return;
 
   std::shared_ptr<ShaderProgram> program = (*di)->getShaderProgram();
   
@@ -660,6 +661,42 @@ void Glade::Renderer::writeUniformsToVideoMemory(Drawable *drawable, ShaderProgr
     ++v4i;
   }
 
+  const auto* animator = drawable->getSpriteAnimator();
+  const auto* uv = drawable->getTexture2DTransform();
+  const GLint geometry = glGetUniformLocation(program.gpuHandle, "uSpriteGeometry");
+  const GLint scaleX = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleX0");
+  const GLint scaleY = glGetUniformLocation(program.gpuHandle, "uTexCoordScaleY0");
+  const GLint offsetX = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetX0");
+  const GLint offsetY = glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetY0");
+  // Always reset geometry for ordinary drawables sharing a sprite shader.
+  glUniform4f(geometry, 1, 1, 0, 0);
+  if (animator) {
+    if (!animator->hasFrame()) return; // draw() skips sprites without a selection.
+    if (geometry < 0 || scaleX < 0 || scaleY < 0 || offsetX < 0 || offsetY < 0 ||
+        glGetUniformLocation(program.gpuHandle, "uTextureSampler0") < 0 ||
+        dynamic_cast<Glade::Rectangle*>(drawable->getMesh().get()) == nullptr)
+      throw GladeException("Sprite requires Rectangle and texcoord_frames/textured shaders");
+    const auto& frame = animator->getCurrentFrame();
+    const auto& texture = animator->getAtlas()->getTexture();
+    const bool flipX = uv->isFlippedHorizontally(), flipY = uv->isFlippedVertically();
+    // Keep geometry winding unchanged when mirroring: reflect its centre about
+    // the pivot, and reverse UV direction within the selected atlas rectangle.
+    glUniform4f(geometry, frame.width * 0.5f, frame.height * 0.5f,
+        (frame.width * 0.5f - frame.pivotX) * (flipX ? -1 : 1),
+        (frame.pivotY - frame.height * 0.5f) * (flipY ? -1 : 1));
+    glUniform1f(scaleX, float(frame.width) / texture->textureWidth * (flipX ? -1 : 1));
+    glUniform1f(scaleY, float(frame.height) / texture->textureHeight * (flipY ? 1 : -1));
+    glUniform1f(offsetX, float(frame.x + (flipX ? frame.width : 0)) / texture->textureWidth);
+    glUniform1f(offsetY, float(frame.y + (flipY ? 0 : frame.height)) / texture->textureHeight);
+    if (!texture->hasVideoBufferHandle()) moveTextureIntoVideoMemory(texture);
+    setTexture2DUniformToShader("uTextureSampler0", texture->getVideoBufferHandle(), 0, program);
+    return; // Atlas texture is the sole texture source for sprite rendering.
+  }
+  glUniform1f(scaleX, uv->textureScaleX);
+  glUniform1f(scaleY, uv->textureScaleY);
+  glUniform1f(offsetX, uv->textureOffsetX + (uv->isFlippedHorizontally() ? 1.0f : 0.0f));
+  glUniform1f(offsetY, uv->textureOffsetY + (uv->isFlippedVertically() ? 1.0f : 0.0f));
+
   Drawable::Shader2DTextureUniformsCI tex2di = drawable->texture2DUniformsBegin();
 
   unsigned i = 0;
@@ -669,22 +706,6 @@ void Glade::Renderer::writeUniformsToVideoMemory(Drawable *drawable, ShaderProgr
     std::shared_ptr<Texture> texture = tex2di->second;
     if (!texture->hasVideoBufferHandle()) {
       moveTextureIntoVideoMemory(texture);
-    }
-
-    // The stock frame shader addresses the primary texture as a uniform grid.
-    if (tex2di->first == "uTextureSampler0") {
-      TextureTransform* transform = drawable->getTexture2DTransform();
-      const int frame = transform->getCurrentFrameNumber(*texture);
-      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordScaleX0"),
-          texture->texCoordFrameWidth * transform->textureScaleX *
-          transform->getTextureScaleXModifierForFrame(*texture));
-      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordScaleY0"),
-          texture->texCoordFrameHeight * transform->textureScaleY *
-          transform->getTextureScaleYModifierForFrame(*texture));
-      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetX0"),
-          frame * texture->texCoordFrameWidth);
-      glUniform1f(glGetUniformLocation(program.gpuHandle, "uTexCoordOffsetY0"),
-          transform->getCurrentAnimationNumber(*texture) * texture->texCoordFrameHeight);
     }
 
     setTexture2DUniformToShader(tex2di->first, texture->getVideoBufferHandle(), i, program);

@@ -93,7 +93,7 @@ static Texture *createTextureFromBitmap(FT_Bitmap *bitmap)
     *(ptr + 3) = *srcPtr;
   }
   
-  Texture *texture(new Texture(bitmap->width, bitmap->rows, 1, 1, pixmap, size));
+  Texture *texture(new Texture(bitmap->width, bitmap->rows, pixmap, size));
   
   delete[] pixmap;
   
