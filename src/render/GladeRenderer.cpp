@@ -440,6 +440,7 @@ void Glade::Renderer::removeFromVideoMemory(Drawable &drawable)
     texIds[0] = tex2di->second->getVideoBufferHandle();
     glDeleteTextures(1, texIds);
     tex2di->second->setVideoBufferHandle(-1);
+    ++tex2di;
   }
 
   if (mesh->hasVideoBufferHandle()) {
