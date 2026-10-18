@@ -4,6 +4,9 @@ GladeTexAtlas describes a sprite atlas in a separate JSON file. It contains
 named frame definitions and named animations that reference those frames.
 This document specifies the format implemented by GladeTexAtlasReader.
 
+For runtime ownership, playback, and rendering, see
+[SpriteAnimation.md](SpriteAnimation.md).
+
 ## Example
 
 ```json
