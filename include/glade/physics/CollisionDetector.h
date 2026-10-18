@@ -7,29 +7,29 @@ class CollisionEventListener;
 class Context;
 struct CollisionInfo;
 
-class CollisionDetector
-{
-  public:
-    CollisionDetector(Context *context): context(context), paused(false), grid(nullptr), kinematicObj(nullptr), prevPosition(nullptr) {}
+class CollisionDetector {
+public:
+  CollisionDetector(Context *context_)
+      : context(context_), paused(false), grid(nullptr), kinematicObj(nullptr),
+        prevPosition(nullptr) {}
 
-    void detectAndResolveCollisions(long deltaTime);
-    void setSpatialIndex(Grid *grid) { this->grid = grid; }
+  void detectAndResolveCollisions(long delta_time);
+  void setSpatialIndex(Grid *grid_) { this->grid = grid_; }
+  void add(GladeObject *object);
+  void remove(GladeObject *object);
+  void clear();
+  void setPaused(bool paused_) { this->paused = paused_; }
+  bool isPaused() { return paused; }
 
-    void add(GladeObject* object);
-    void remove(GladeObject* object);
-    void clear();
+private:
+  void testVsIsosurfaceCellNarrowPhase(GladeObject *kinematic_object,
+                                       Grid::Cell *static_isosurface_cell,
+                                       std::vector<CollisionInfo> &collisions);
 
-    void setPaused(bool paused) { this->paused = paused; }
-    bool isPaused() { return paused; }
-
-  private:
-    void testVsIsosurfaceCellNarrowPhase(GladeObject *kinematicObject, Grid::Cell *staticIsosurfaceCell, std::vector<CollisionInfo> &collisions);
-
-    GladeObject* kinematicObj; // only one for now
-    Glade::Vector3f *prevPosition;
-    std::vector<GladeObject*> staticCollidableObjects;
-    Grid *grid;
-    Context *context;
-    bool paused;
+  GladeObject *kinematicObj; // only one for now
+  Glade::Vector3f *prevPosition;
+  std::vector<GladeObject *> staticCollidableObjects;
+  Grid *grid;
+  Context *context;
+  bool paused;
 };
-

@@ -4,28 +4,19 @@
 
 class GladeObject;
 
-class PhysicalObject
-{
-  public:
-    enum Type {
-      STATIC,
-      KINEMATIC
-    };
+class PhysicalObject {
+public:
+  enum Type { STATIC, KINEMATIC };
 
-    PhysicalObject(GladeObject *entity, Type type = Type::STATIC):
-      affectedByGravity(false),
-      entity(entity),
-      type(type)
-    {}
+  PhysicalObject(GladeObject *entity_, Type type_ = Type::STATIC)
+      : affectedByGravity(false), entity(entity_), type(type_) {}
 
-    Type getType() { return type; }
+  Type getType() { return type; }
+  virtual void *getGjkSupportFunction() = 0;
 
-    virtual void* getGjkSupportFunction() = 0;
+  bool affectedByGravity;
+  GladeObject *entity;
 
-    bool affectedByGravity;
-    GladeObject *entity;
-
-  private:
-    Type type;
+private:
+  Type type;
 };
-

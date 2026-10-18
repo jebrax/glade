@@ -1,49 +1,48 @@
 #include "glade/math/Matrix.h"
 
-void Matrix::multiplyMM(float* r, int rOffset, const float* lhs, int lhsOffset, const float* rhs, int rhsOffset)
-{
-  for (int i=0 ; i<4 ; i++) {
-    const float rhs_i0 = rhs[ GLADE_I(i,0) + rhsOffset ];
-    float ri0 = lhs[ GLADE_I(0,0) + lhsOffset ] * rhs_i0;
-    float ri1 = lhs[ GLADE_I(0,1) + lhsOffset ] * rhs_i0;
-    float ri2 = lhs[ GLADE_I(0,2) + lhsOffset ] * rhs_i0;
-    float ri3 = lhs[ GLADE_I(0,3) + lhsOffset ] * rhs_i0;
-    
-    for (int j=1 ; j<4 ; j++) {
-      const float rhs_ij = rhs[ GLADE_I(i,j) + rhsOffset ];
-      ri0 += lhs[ GLADE_I(j,0) + lhsOffset ] * rhs_ij;
-      ri1 += lhs[ GLADE_I(j,1) + lhsOffset ] * rhs_ij;
-      ri2 += lhs[ GLADE_I(j,2) + lhsOffset ] * rhs_ij;
-      ri3 += lhs[ GLADE_I(j,3) + lhsOffset ] * rhs_ij;
+void Matrix::multiplyMm(float *r, int r_offset, const float *lhs, int lhs_offset, const float *rhs,
+                        int rhs_offset) {
+  for (int i = 0; i < 4; i++) {
+    const float rhs_i0 = rhs[GLADE_I(i, 0) + rhs_offset];
+    float ri0 = lhs[GLADE_I(0, 0) + lhs_offset] * rhs_i0;
+    float ri1 = lhs[GLADE_I(0, 1) + lhs_offset] * rhs_i0;
+    float ri2 = lhs[GLADE_I(0, 2) + lhs_offset] * rhs_i0;
+    float ri3 = lhs[GLADE_I(0, 3) + lhs_offset] * rhs_i0;
+
+    for (int j = 1; j < 4; j++) {
+      const float rhs_ij = rhs[GLADE_I(i, j) + rhs_offset];
+      ri0 += lhs[GLADE_I(j, 0) + lhs_offset] * rhs_ij;
+      ri1 += lhs[GLADE_I(j, 1) + lhs_offset] * rhs_ij;
+      ri2 += lhs[GLADE_I(j, 2) + lhs_offset] * rhs_ij;
+      ri3 += lhs[GLADE_I(j, 3) + lhs_offset] * rhs_ij;
     }
-    
-    r[ GLADE_I(i,0) + rOffset ] = ri0;
-    r[ GLADE_I(i,1) + rOffset ] = ri1;
-    r[ GLADE_I(i,2) + rOffset ] = ri2;
-    r[ GLADE_I(i,3) + rOffset ] = ri3;
+
+    r[GLADE_I(i, 0) + r_offset] = ri0;
+    r[GLADE_I(i, 1) + r_offset] = ri1;
+    r[GLADE_I(i, 2) + r_offset] = ri2;
+    r[GLADE_I(i, 3) + r_offset] = ri3;
   }
 }
 
-void Matrix::transposeM(float mTrans[16], int mTransOffset, const float m[16], int mOffset)
-{
-  int mBase;
+void Matrix::transposeM(float m_trans[16], int m_trans_offset, const float m[16], int m_offset) {
+  int m_base;
+
   for (int i = 0; i < 4; i++) {
-    mBase = i * 4 + mOffset;
-    mTrans[i + mTransOffset] = m[mBase];
-    mTrans[i + 4 + mTransOffset] = m[mBase + 1];
-    mTrans[i + 8 + mTransOffset] = m[mBase + 2];
-    mTrans[i + 12 + mTransOffset] = m[mBase + 3];
+    m_base = i * 4 + m_offset;
+    m_trans[i + m_trans_offset] = m[m_base];
+    m_trans[i + 4 + m_trans_offset] = m[m_base + 1];
+    m_trans[i + 8 + m_trans_offset] = m[m_base + 2];
+    m_trans[i + 12 + m_trans_offset] = m[m_base + 3];
   }
 }
 
 // Invert a 4 x 4 matrix using Cramer's Rule
-bool Matrix::invertM(float mInv[16], int mInvOffset, const float m[16], int mOffset)
-{
+bool Matrix::invertM(float m_inv[16], int m_inv_offset, const float m[16], int m_offset) {
   // array of transpose source matrix
   float src[16];
 
   // transpose matrix
-  transposeM(src, 0, m, mOffset);
+  transposeM(src, 0, m, m_offset);
 
   // temp array for pairs
   float tmp[12];
@@ -125,103 +124,110 @@ bool Matrix::invertM(float mInv[16], int mInvOffset, const float m[16], int mOff
 
   // calculate matrix inverse
   det = 1.0f / det;
+
   for (int j = 0; j < 16; j++) {
-    mInv[j + mInvOffset] = dst[j] * det;
+    m_inv[j + m_inv_offset] = dst[j] * det;
   }
-  
+
   return true;
 }
 
-void Matrix::orthoM(float m[16], int mOffset, float left, float right, float bottom, float top, float near, float far)
-{
+void Matrix::orthoM(float m[16], int m_offset, float left, float right, float bottom, float top,
+                    float near, float far) {
   if (left == right) {
     // throw new IllegalArgumentException("left == right"); FIXME
   }
+
   if (bottom == top) {
     // throw new IllegalArgumentException("bottom == top"); FIXME
   }
+
   if (near == far) {
     // throw new IllegalArgumentException("near == far"); FIXME
   }
 
-  const float r_width  = 1.0f / (right - left);
+  const float r_width = 1.0f / (right - left);
   const float r_height = 1.0f / (top - bottom);
-  const float r_depth  = 1.0f / (far - near);
-  const float x =  2.0f * (r_width);
-  const float y =  2.0f * (r_height);
+  const float r_depth = 1.0f / (far - near);
+  const float x = 2.0f * (r_width);
+  const float y = 2.0f * (r_height);
   const float z = -2.0f * (r_depth);
   const float tx = -(right + left) * r_width;
   const float ty = -(top + bottom) * r_height;
   const float tz = -(far + near) * r_depth;
-  
-  m[mOffset + 0] = x;
-  m[mOffset + 5] = y;
-  m[mOffset +10] = z;
-  m[mOffset +12] = tx;
-  m[mOffset +13] = ty;
-  m[mOffset +14] = tz;
-  m[mOffset +15] = 1.0f;
-  m[mOffset + 1] = 0.0f;
-  m[mOffset + 2] = 0.0f;
-  m[mOffset + 3] = 0.0f;
-  m[mOffset + 4] = 0.0f;
-  m[mOffset + 6] = 0.0f;
-  m[mOffset + 7] = 0.0f;
-  m[mOffset + 8] = 0.0f;
-  m[mOffset + 9] = 0.0f;
-  m[mOffset + 11] = 0.0f;
+
+  m[m_offset + 0] = x;
+  m[m_offset + 5] = y;
+  m[m_offset + 10] = z;
+  m[m_offset + 12] = tx;
+  m[m_offset + 13] = ty;
+  m[m_offset + 14] = tz;
+  m[m_offset + 15] = 1.0f;
+  m[m_offset + 1] = 0.0f;
+  m[m_offset + 2] = 0.0f;
+  m[m_offset + 3] = 0.0f;
+  m[m_offset + 4] = 0.0f;
+  m[m_offset + 6] = 0.0f;
+  m[m_offset + 7] = 0.0f;
+  m[m_offset + 8] = 0.0f;
+  m[m_offset + 9] = 0.0f;
+  m[m_offset + 11] = 0.0f;
 }
 
-void frustumM(float m[16], int offset, float left, float right, float bottom, float top, float near, float far)
-{
+void frustum_m(float m[16], int offset, float left, float right, float bottom, float top,
+               float near, float far) {
   if (left == right) {
     // throw new IllegalArgumentException("left == right"); FIXME
   }
+
   if (top == bottom) {
     // throw new IllegalArgumentException("top == bottom"); FIXME
   }
+
   if (near == far) {
     // throw new IllegalArgumentException("near == far"); FIXME
   }
+
   if (near <= 0.0f) {
     // throw new IllegalArgumentException("near <= 0.0f"); FIXME
   }
+
   if (far <= 0.0f) {
     // throw new IllegalArgumentException("far <= 0.0f"); FIXME
   }
-  
-  const float r_width  = 1.0f / (right - left);
+
+  const float r_width = 1.0f / (right - left);
   const float r_height = 1.0f / (top - bottom);
-  const float r_depth  = 1.0f / (near - far);
+  const float r_depth = 1.0f / (near - far);
   const float x = 2.0f * (near * r_width);
   const float y = 2.0f * (near * r_height);
   const float A = 2.0f * ((right + left) * r_width);
   const float B = (top + bottom) * r_height;
   const float C = (far + near) * r_depth;
   const float D = 2.0f * (far * near * r_depth);
-  
+
   m[offset + 0] = x;
   m[offset + 5] = y;
   m[offset + 8] = A;
-  m[offset +  9] = B;
+  m[offset + 9] = B;
   m[offset + 10] = C;
   m[offset + 14] = D;
   m[offset + 11] = -1.0f;
-  m[offset +  1] = 0.0f;
-  m[offset +  2] = 0.0f;
-  m[offset +  3] = 0.0f;
-  m[offset +  4] = 0.0f;
-  m[offset +  6] = 0.0f;
-  m[offset +  7] = 0.0f;
+  m[offset + 1] = 0.0f;
+  m[offset + 2] = 0.0f;
+  m[offset + 3] = 0.0f;
+  m[offset + 4] = 0.0f;
+  m[offset + 6] = 0.0f;
+  m[offset + 7] = 0.0f;
   m[offset + 12] = 0.0f;
   m[offset + 13] = 0.0f;
   m[offset + 15] = 0.0f;
 }
 
-void Matrix::perspectiveM(float m[16], int offset, float fovy, float aspect, float zNear, float zFar)
-{
-  float f = 1.0f / (float) tan(fovy * (GLADE_PI / 360.0));
-  float rangeReciprocal = 1.0f / (zNear - zFar);
+void Matrix::perspectiveM(float m[16], int offset, float fovy, float aspect, float z_near,
+                          float z_far) {
+  float f = 1.0f / (float)::tan(fovy * (GLADE_PI / 360.0));
+  float range_reciprocal = 1.0f / (z_near - z_far);
 
   m[offset + 0] = f / aspect;
   m[offset + 1] = 0.0f;
@@ -235,55 +241,67 @@ void Matrix::perspectiveM(float m[16], int offset, float fovy, float aspect, flo
 
   m[offset + 8] = 0.0f;
   m[offset + 9] = 0.0f;
-  m[offset + 10] = (zFar + zNear) * rangeReciprocal;
+  m[offset + 10] = (z_far + z_near) * range_reciprocal;
   m[offset + 11] = -1.0f;
 
   m[offset + 12] = 0.0f;
   m[offset + 13] = 0.0f;
-  m[offset + 14] = 2.0f * zFar * zNear * rangeReciprocal;
+  m[offset + 14] = 2.0f * z_far * z_near * range_reciprocal;
   m[offset + 15] = 0.0f;
 }
 
-void Matrix::setRotateM(float rm[16], int rmOffset, float a, float x, float y, float z)
-{
-  rm[rmOffset + 3] = 0;
-  rm[rmOffset + 7] = 0;
-  rm[rmOffset + 11]= 0;
-  rm[rmOffset + 12]= 0;
-  rm[rmOffset + 13]= 0;
-  rm[rmOffset + 14]= 0;
-  rm[rmOffset + 15]= 1;
-  a *= (float) (GLADE_PI / 180.0f);
-  float s = (float) sin(a);
-  float c = (float) cos(a);
+void Matrix::setRotateM(float rm[16], int rm_offset, float a, float x, float y, float z) {
+  rm[rm_offset + 3] = 0;
+  rm[rm_offset + 7] = 0;
+  rm[rm_offset + 11] = 0;
+  rm[rm_offset + 12] = 0;
+  rm[rm_offset + 13] = 0;
+  rm[rm_offset + 14] = 0;
+  rm[rm_offset + 15] = 1;
+  a *= (float)(GLADE_PI / 180.0f);
+  float s = (float)::sin(a);
+  float c = (float)::cos(a);
+
   if (1.0f == x && 0.0f == y && 0.0f == z) {
-    rm[rmOffset + 5] = c;   rm[rmOffset + 10]= c;
-    rm[rmOffset + 6] = s;   rm[rmOffset + 9] = -s;
-    rm[rmOffset + 1] = 0;   rm[rmOffset + 2] = 0;
-    rm[rmOffset + 4] = 0;   rm[rmOffset + 8] = 0;
-    rm[rmOffset + 0] = 1;
+    rm[rm_offset + 5] = c;
+    rm[rm_offset + 10] = c;
+    rm[rm_offset + 6] = s;
+    rm[rm_offset + 9] = -s;
+    rm[rm_offset + 1] = 0;
+    rm[rm_offset + 2] = 0;
+    rm[rm_offset + 4] = 0;
+    rm[rm_offset + 8] = 0;
+    rm[rm_offset + 0] = 1;
   } else if (0.0f == x && 1.0f == y && 0.0f == z) {
-    rm[rmOffset + 0] = c;   rm[rmOffset + 10]= c;
-    rm[rmOffset + 8] = s;   rm[rmOffset + 2] = -s;
-    rm[rmOffset + 1] = 0;   rm[rmOffset + 4] = 0;
-    rm[rmOffset + 6] = 0;   rm[rmOffset + 9] = 0;
-    rm[rmOffset + 5] = 1;
+    rm[rm_offset + 0] = c;
+    rm[rm_offset + 10] = c;
+    rm[rm_offset + 8] = s;
+    rm[rm_offset + 2] = -s;
+    rm[rm_offset + 1] = 0;
+    rm[rm_offset + 4] = 0;
+    rm[rm_offset + 6] = 0;
+    rm[rm_offset + 9] = 0;
+    rm[rm_offset + 5] = 1;
   } else if (0.0f == x && 0.0f == y && 1.0f == z) {
-    rm[rmOffset + 0] = c;   rm[rmOffset + 5] = c;
-    rm[rmOffset + 1] = s;   rm[rmOffset + 4] = -s;
-    rm[rmOffset + 2] = 0;   rm[rmOffset + 6] = 0;
-    rm[rmOffset + 8] = 0;   rm[rmOffset + 9] = 0;
-    rm[rmOffset + 10]= 1;
+    rm[rm_offset + 0] = c;
+    rm[rm_offset + 5] = c;
+    rm[rm_offset + 1] = s;
+    rm[rm_offset + 4] = -s;
+    rm[rm_offset + 2] = 0;
+    rm[rm_offset + 6] = 0;
+    rm[rm_offset + 8] = 0;
+    rm[rm_offset + 9] = 0;
+    rm[rm_offset + 10] = 1;
   } else {
     float len = length(x, y, z);
-    
+
     if (1.0f != len) {
-      float recipLen = 1.0f / len;
-      x *= recipLen;
-      y *= recipLen;
-      z *= recipLen;
+      float recip_len = 1.0f / len;
+      x *= recip_len;
+      y *= recip_len;
+      z *= recip_len;
     }
-    
+
     float nc = 1.0f - c;
     float xy = x * y;
     float yz = y * z;
@@ -291,50 +309,49 @@ void Matrix::setRotateM(float rm[16], int rmOffset, float a, float x, float y, f
     float xs = x * s;
     float ys = y * s;
     float zs = z * s;
-    
-    rm[rmOffset +  0] = x*x*nc +  c;
-    rm[rmOffset +  4] =  xy*nc - zs;
-    rm[rmOffset +  8] =  zx*nc + ys;
-    rm[rmOffset +  1] =  xy*nc + zs;
-    rm[rmOffset +  5] = y*y*nc +  c;
-    rm[rmOffset +  9] =  yz*nc - xs;
-    rm[rmOffset +  2] =  zx*nc - ys;
-    rm[rmOffset +  6] =  yz*nc + xs;
-    rm[rmOffset + 10] = z*z*nc +  c;
+
+    rm[rm_offset + 0] = x * x * nc + c;
+    rm[rm_offset + 4] = xy * nc - zs;
+    rm[rm_offset + 8] = zx * nc + ys;
+    rm[rm_offset + 1] = xy * nc + zs;
+    rm[rm_offset + 5] = y * y * nc + c;
+    rm[rm_offset + 9] = yz * nc - xs;
+    rm[rm_offset + 2] = zx * nc - ys;
+    rm[rm_offset + 6] = yz * nc + xs;
+    rm[rm_offset + 10] = z * z * nc + c;
   }
 }
 
-void Matrix::setRotateEulerM(float rm[16], int rmOffset, float x, float y, float z)
-{
-  x *= (float) (GLADE_PI / 180.0f);
-  y *= (float) (GLADE_PI / 180.0f);
-  z *= (float) (GLADE_PI / 180.0f);
-  float cx = (float) cos(x);
-  float sx = (float) sin(x);
-  float cy = (float) cos(y);
-  float sy = (float) sin(y);
-  float cz = (float) cos(z);
-  float sz = (float) sin(z);
+void Matrix::setRotateEulerM(float rm[16], int rm_offset, float x, float y, float z) {
+  x *= (float)(GLADE_PI / 180.0f);
+  y *= (float)(GLADE_PI / 180.0f);
+  z *= (float)(GLADE_PI / 180.0f);
+  float cx = (float)::cos(x);
+  float sx = (float)::sin(x);
+  float cy = (float)::cos(y);
+  float sy = (float)::sin(y);
+  float cz = (float)::cos(z);
+  float sz = (float)::sin(z);
   float cxsy = cx * sy;
   float sxsy = sx * sy;
 
-  rm[rmOffset + 0]  =   cy * cz;
-  rm[rmOffset + 1]  =  -cy * sz;
-  rm[rmOffset + 2]  =   sy;
-  rm[rmOffset + 3]  =  0.0f;
+  rm[rm_offset + 0] = cy * cz;
+  rm[rm_offset + 1] = -cy * sz;
+  rm[rm_offset + 2] = sy;
+  rm[rm_offset + 3] = 0.0f;
 
-  rm[rmOffset + 4]  =  cxsy * cz + cx * sz;
-  rm[rmOffset + 5]  = -cxsy * sz + cx * cz;
-  rm[rmOffset + 6]  =  -sx * cy;
-  rm[rmOffset + 7]  =  0.0f;
+  rm[rm_offset + 4] = cxsy * cz + cx * sz;
+  rm[rm_offset + 5] = -cxsy * sz + cx * cz;
+  rm[rm_offset + 6] = -sx * cy;
+  rm[rm_offset + 7] = 0.0f;
 
-  rm[rmOffset + 8]  = -sxsy * cz + sx * sz;
-  rm[rmOffset + 9]  =  sxsy * sz + sx * cz;
-  rm[rmOffset + 10] =  cx * cy;
-  rm[rmOffset + 11] =  0.0f;
+  rm[rm_offset + 8] = -sxsy * cz + sx * sz;
+  rm[rm_offset + 9] = sxsy * sz + sx * cz;
+  rm[rm_offset + 10] = cx * cy;
+  rm[rm_offset + 11] = 0.0f;
 
-  rm[rmOffset + 12] =  0.0f;
-  rm[rmOffset + 13] =  0.0f;
-  rm[rmOffset + 14] =  0.0f;
-  rm[rmOffset + 15] =  1.0f;
+  rm[rm_offset + 12] = 0.0f;
+  rm[rm_offset + 13] = 0.0f;
+  rm[rm_offset + 14] = 0.0f;
+  rm[rm_offset + 15] = 1.0f;
 }

@@ -4,12 +4,14 @@
 class Grid;
 
 void seed();
-float heightFunction1(float x, float z);
-float heightFunction2(float x, float z);
-float heightFunction3(float x, float z);
-float noise3D(float x, float y, float z);
-float heightFunction4(float x, float z, const AdvancedMeshGenerator::TerrainGeneratorSettings &settings);
-float heightFunction5(float x, float z, const std::vector<AdvancedMeshGenerator::TerrainGeneratorSettings> &settings);
-float isosurfaceFromHeightMap(float y, float heightValue, float maxHeight, float isolevel);
+float height_function1(float x, float z);
+float height_function2(float x, float z);
+float height_function3(float x, float z);
+float noise3_d(float x, float y, float z);
+float height_function4(float x, float z,
+                       const AdvancedMeshGenerator::TerrainGeneratorSettings &settings);
+float height_function5(
+    float x, float z, const std::vector<AdvancedMeshGenerator::TerrainGeneratorSettings> &settings);
+float isosurface_from_height_map(float y, float height_value, float max_height, float isolevel);
 
-void perlinTest();
+void perlin_test();

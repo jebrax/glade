@@ -5,62 +5,49 @@
 #include <memory>
 
 namespace Glade {
-  class MemoryInputStream {
-    public:
-      MemoryInputStream(const unsigned char* buffer, unsigned int size):
-        mBuffer(buffer),
-        mCapacity(size),
-        mHead(0)
-      {
-        assert(buffer != nullptr);
-        assert(size != 0);
 
-      }
+class MemoryInputStream {
+public:
+  MemoryInputStream(const unsigned char *buffer, unsigned int size)
+      : mBuffer(buffer), mCapacity(size), mHead(0) {
+    assert(buffer != nullptr);
+    assert(size != 0);
+  }
 
-      ~MemoryInputStream() {}
+  ~MemoryInputStream() {}
+  unsigned int read(void *out_data, unsigned int size);
 
-      unsigned int Read(void *outData, unsigned int size);
+  // POD only plz
+  template <typename T> unsigned int read(T &out_data) { return read(&out_data, sizeof(T)); };
+  const unsigned char *getBuffer() { return mBuffer; }
+  const unsigned int getBufferSize() { return mCapacity; }
+  const unsigned int getUnreadSize() { return mCapacity - mHead; }
 
-      // POD only plz
-      template<typename T>
-      unsigned int Read(T &outData) { return Read(&outData, sizeof(T)); };
+private:
+  unsigned int mCapacity, mHead;
+  const unsigned char *mBuffer;
+};
 
-      const unsigned char* GetBuffer() { return mBuffer; }
-      const unsigned int GetBufferSize() { return mCapacity; }
-      const unsigned int GetUnreadSize() { return mCapacity - mHead; }
+class MemoryOutputStream {
+public:
+  static constexpr unsigned int DEFAULT_BUFFER_SIZE = 32;
 
-    private:
-      unsigned int mCapacity, mHead;
-      const unsigned char *mBuffer;
-  };
+  MemoryOutputStream() : mBuffer(nullptr), mCapacity(DEFAULT_BUFFER_SIZE), mTail(0) {
+    mBuffer = (unsigned char *)std::malloc(mCapacity);
+  }
 
-  class MemoryOutputStream {
-    public:
-      static constexpr unsigned int DEFAULT_BUFFER_SIZE = 32;
+  ~MemoryOutputStream() { std::free(mBuffer); }
+  unsigned int write(const void *data, unsigned int size);
 
-      MemoryOutputStream():
-        mBuffer(nullptr),
-        mCapacity(DEFAULT_BUFFER_SIZE),
-        mTail(0)
-      {
-        mBuffer = (unsigned char*) std::malloc(mCapacity);
-      }
+  // POD only plz
+  template <typename T> unsigned int write(const T &data) { return write(&data, sizeof(T)); };
+  const unsigned char *getBuffer() { return mBuffer; }
+  const unsigned int getBufferSize() { return mCapacity; }
+  const unsigned int getWrittenSize() { return mTail; }
 
-      ~MemoryOutputStream() { std::free(mBuffer); }
+private:
+  unsigned int mCapacity, mTail;
+  unsigned char *mBuffer;
+};
 
-      unsigned int Write(const void *data, unsigned int size);
-
-      // POD only plz
-      template<typename T>
-      unsigned int Write(const T &data) { return Write(&data, sizeof(T)); };
-
-      const unsigned char* GetBuffer() { return mBuffer; }
-      const unsigned int GetBufferSize() { return mCapacity; }
-      const unsigned int GetWrittenSize() { return mTail; }
-
-  private:
-      unsigned int mCapacity, mTail;
-      unsigned char *mBuffer;
-  };
 }
-

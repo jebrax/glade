@@ -14,101 +14,99 @@ class Texture;
 class Perception;
 
 namespace Glade {
-  class Mesh;
-  class Vector3f;
 
-  class Renderer {
-  public:
-    enum ProjectionMode {PERSPECTIVE, ORTHO};
-    
-    static const uint32_t POS_SIZE_FLOATS;
-    static const uint32_t COLOR_SIZE_FLOATS;
-    static const uint32_t NORMAL_SIZE_FLOATS;
-    static const uint32_t TEXCOORD_SIZE_FLOATS;
-    static const uint32_t POS_OFFSET_FLOATS;
-    static const uint32_t COLOR_OFFSET_FLOATS;
-    static const uint32_t NORMAL_OFFSET_FLOATS;
-    static const uint32_t TEXCOORD_OFFSET_FLOATS;
-    static const uint32_t VERTEX_STRIDE_FLOATS;
-    static const void * POS_OFFSET_BYTES;
-    static const void * COLOR_OFFSET_BYTES;
-    static const void * NORMAL_OFFSET_BYTES;
-    static const void * TEXCOORD_OFFSET_BYTES;
-    static const int    VERTEX_STRIDE_BYTES;
- 
-  private:
-      // shader program handle
-    uint32_t program;
+class Mesh;
+class Vector3f;
 
-    // handles to shader uniforms
-    uint32_t  uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
-        uDiffuseMap, uSpecularMap, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
+class Renderer {
+public:
+  enum ProjectionMode { PERSPECTIVE, ORTHO };
 
-    // handles to shader attributes
-      int32_t aPosition = -1, aNormal = -1, aTexCoord = -1;
- 
-    Perception  *perception;
-    unsigned short viewportWidth, viewportHeight;
-    float aspectRatio;
-    ProjectionMode currentProjectionMode, sceneProjectionMode;
- 
-    float projectionMatrix[16], viewMatrix[16], worldViewMatrix[16], cameraTransform[16];
-    Glade::Vector3f backgroundColor;
- 
-    std::vector<GladeObject*> sceneObjects; // maybe set?
+  static const uint32_t POS_SIZE_FLOATS;
+  static const uint32_t COLOR_SIZE_FLOATS;
+  static const uint32_t NORMAL_SIZE_FLOATS;
+  static const uint32_t TEXCOORD_SIZE_FLOATS;
+  static const uint32_t POS_OFFSET_FLOATS;
+  static const uint32_t COLOR_OFFSET_FLOATS;
+  static const uint32_t NORMAL_OFFSET_FLOATS;
+  static const uint32_t TEXCOORD_OFFSET_FLOATS;
+  static const uint32_t VERTEX_STRIDE_FLOATS;
+  static const void *POS_OFFSET_BYTES;
+  static const void *COLOR_OFFSET_BYTES;
+  static const void *NORMAL_OFFSET_BYTES;
+  static const void *TEXCOORD_OFFSET_BYTES;
+  static const int VERTEX_STRIDE_BYTES;
 
-    bool initialized;
+private:
+  // shader program handle
+  uint32_t program;
 
-  public:
-    Renderer(void);
-    void onSurfaceCreated();
-    void onSurfaceChanged(int width, int height);
-    void add(GladeObject *sceneObject);
-    void remove(GladeObject *sceneObject);
-    void clear(void);
-    void onDrawFrame(void);
-    void setSceneProjectionMode(ProjectionMode projectionMode);
-    int getViewportWidth(void);
-    int getViewportHeight(void);
-    void setBackgroundColor(float r, float g, float b);
-    int percentToPixels(float percent);
-    float pixelsToPercent(float pixels);
-    void moveZeroToUpperLeftCorner(void);
-    float getHalfViewportWidthCoords(void);
-    float getHalfViewportHeightCoords(void);
-    float getViewportWidthCoords(void);
-    float getViewportHeightCoords(void);
-    Glade::Vector2f getPointCoords(float screenX, float screenY);
-    Glade::Vector3f unprojectPoint(float x, float y, float z);
+  // handles to shader uniforms
+  uint32_t uProjectionMatrix, uCameraTransform, uWorldViewMatrix, uWorldMatrix, uCameraPosition,
+      uDiffuseMap, uSpecularMap, uTexOffsetX, uTexOffsetY, uTexScaleX, uTexScaleY;
 
-    Transform *getCamera()
-    {
-      return perception ? perception->getTransform() : NULL;
-    }
-    
-    Perception  *getPerception() { return perception; }
-    void setPerception(Perception *perception) { this->perception = perception; }
-    
-  private:
-    void moveAllObjectsIntoVideoMemory(void);
-    void moveIntoVideoMemory(GladeObject &sceneObject);
+  // handles to shader attributes
+  int32_t aPosition = -1, aNormal = -1, aTexCoord = -1;
 
-    void compileShaderProgram(ShaderProgram *program);
-    void bindBuffers(Mesh *mesh);
-    uint32_t loadShader(uint32_t type, std::vector<char> &shader_source);
-    void moveIntoVideoMemory(std::shared_ptr<Mesh> mesh);
-    void moveTextureIntoVideoMemory(std::shared_ptr<Texture> texturePtr);
-    void setTexture2DUniformToShader(const std::string &uniformName, uint32_t textureVideoBufferHandle, unsigned textureUnitNumber, ShaderProgram &program);
-    void writeUniformsToVideoMemory(Drawable *drawable, ShaderProgram &program);
+  Perception *perception;
+  unsigned short viewportWidth, viewportHeight;
+  float aspectRatio;
+  ProjectionMode currentProjectionMode, sceneProjectionMode;
 
-    int checkGLError();
+  float projectionMatrix[16], viewMatrix[16], worldViewMatrix[16], cameraTransform[16];
+  Glade::Vector3f backgroundColor;
 
-    void drawAll(std::vector<GladeObject*>::iterator i, std::vector<GladeObject*>::iterator end);
-    void removeFromVideoMemory(Drawable &drawable);
-    void removeAllObjectsFromVideoMemory(void);
-    void draw(GladeObject::DrawablesI di, Transform &transform);
-    void switchProjectionMode(ProjectionMode projectionMode, bool force);
-    void switchProjectionMode(ProjectionMode projectionMode);
-    void getShaderHandles(ShaderProgram &shaderProgram);
-  };
+  std::vector<GladeObject *> sceneObjects; // maybe set?
+
+  bool initialized;
+
+public:
+  Renderer(void);
+  void onSurfaceCreated();
+  void onSurfaceChanged(int width, int height);
+  void add(GladeObject *scene_object);
+  void remove(GladeObject *scene_object);
+  void clear(void);
+  void onDrawFrame(void);
+  void setSceneProjectionMode(ProjectionMode projection_mode);
+  int getViewportWidth(void);
+  int getViewportHeight(void);
+  void setBackgroundColor(float r, float g, float b);
+  int percentToPixels(float percent);
+  float pixelsToPercent(float pixels);
+  void moveZeroToUpperLeftCorner(void);
+  float getHalfViewportWidthCoords(void);
+  float getHalfViewportHeightCoords(void);
+  float getViewportWidthCoords(void);
+  float getViewportHeightCoords(void);
+  Glade::Vector2f getPointCoords(float screen_x, float screen_y);
+  Glade::Vector3f unprojectPoint(float x, float y, float z);
+  Transform *getCamera() { return perception ? perception->getTransform() : NULL; }
+  Perception *getPerception() { return perception; }
+  void setPerception(Perception *perception_) { this->perception = perception_; }
+
+private:
+  void moveAllObjectsIntoVideoMemory(void);
+  void moveIntoVideoMemory(GladeObject &scene_object);
+  void compileShaderProgram(ShaderProgram *program_);
+  void bindBuffers(Mesh *mesh);
+  uint32_t loadShader(uint32_t type, std::vector<char> &shader_source);
+  void moveIntoVideoMemory(std::shared_ptr<Mesh> mesh);
+  void moveTextureIntoVideoMemory(std::shared_ptr<Texture> texture_ptr);
+
+  void setTexture2DUniformToShader(const std::string &uniform_name,
+                                   uint32_t texture_video_buffer_handle,
+                                   unsigned texture_unit_number, ShaderProgram &program_);
+
+  void writeUniformsToVideoMemory(Drawable *drawable, ShaderProgram &program_);
+  int checkGlError();
+  void drawAll(std::vector<GladeObject *>::iterator i, std::vector<GladeObject *>::iterator end);
+  void removeFromVideoMemory(Drawable &drawable);
+  void removeAllObjectsFromVideoMemory(void);
+  void draw(GladeObject::DrawablesI di, Transform &transform);
+  void switchProjectionMode(ProjectionMode projection_mode, bool force);
+  void switchProjectionMode(ProjectionMode projection_mode);
+  void getShaderHandles(ShaderProgram &shader_program);
+};
+
 }

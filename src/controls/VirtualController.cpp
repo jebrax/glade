@@ -4,67 +4,61 @@
 
 #include <unordered_map>
 
-void VirtualController::SetKeyMapper(Glade::KeyMapper *keyMapper)
-{
-  if (mKeyMapper)
-    delete mKeyMapper;
+void VirtualController::setKeyMapper(Glade::KeyMapper *key_mapper) {
+  if (mKeyMapper) delete mKeyMapper;
 
-  mKeyMapper = keyMapper;
+  mKeyMapper = key_mapper;
 }
 
-bool VirtualController::isKeyPressed(Glade::Key controlId) {
-  auto keyState = mKeysState.find(controlId);
-  return (keyState != mKeysState.end() && keyState->second);
+bool VirtualController::isKeyPressed(Glade::Key control_id) {
+  auto key_state = mKeysState.find(control_id);
+  return (key_state != mKeysState.end() && key_state->second);
 }
 
-bool VirtualController::isActionPressed(unsigned int inputAction) {
-  auto inputActionState = mInputActionsState.find(inputAction);
-  return (inputActionState != mInputActionsState.end() && inputActionState->second);
+bool VirtualController::isActionPressed(unsigned int input_action) {
+  auto input_action_state = mInputActionsState.find(input_action);
+  return (input_action_state != mInputActionsState.end() && input_action_state->second);
 }
 
-bool VirtualController::IsActionNetworked(unsigned int inputAction) {
-  return (inputAction > GLADE_CONTROLS_MAX_LOCAL_ACTION_ID);
+bool VirtualController::isActionNetworked(unsigned int input_action) {
+  return (input_action > GLADE_CONTROLS_MAX_LOCAL_ACTION_ID);
 }
 
-bool VirtualController::UpdateKeyState(Glade::Key controlId, int terminalId, bool isPressed)
-{
-  auto keyState = mKeysState.find(controlId);
-  bool changedState = true;
+bool VirtualController::updateKeyState(Glade::Key control_id, int terminal_id, bool is_pressed) {
+  auto key_state = mKeysState.find(control_id);
+  bool changed_state = true;
 
-  if (keyState == mKeysState.end()) {
-    mKeysState[controlId] = isPressed;
+  if (key_state == mKeysState.end()) {
+    mKeysState[control_id] = is_pressed;
   } else {
-    changedState = (keyState->second != isPressed);
-    keyState->second = isPressed;
+    changed_state = (key_state->second != is_pressed);
+    key_state->second = is_pressed;
   }
 
-  if (changedState) {
+  if (changed_state) {
     assert(mKeyMapper);
-    unsigned int inputAction = mKeyMapper->GetMappedAction(controlId);
-    UpdateInputActionState(inputAction, isPressed);
+    unsigned int input_action = mKeyMapper->getMappedAction(control_id);
+    updateInputActionState(input_action, is_pressed);
   }
 
-  return changedState;
+  return changed_state;
 }
 
-bool VirtualController::UpdateInputActionState(unsigned int inputAction, bool isPressed)
-{
-  auto inputActionState = mInputActionsState.find(inputAction);
-  bool changedState = true;
+bool VirtualController::updateInputActionState(unsigned int input_action, bool is_pressed) {
+  auto input_action_state = mInputActionsState.find(input_action);
+  bool changed_state = true;
 
-  if (inputActionState == mInputActionsState.end()) {
-    mInputActionsState[inputAction] = isPressed;
+  if (input_action_state == mInputActionsState.end()) {
+    mInputActionsState[input_action] = is_pressed;
   } else {
-    changedState = (inputActionState->second != isPressed);
-    inputActionState->second = isPressed;
+    changed_state = (input_action_state->second != is_pressed);
+    input_action_state->second = is_pressed;
   }
 
-  if (changedState) {
-    if (isPressed)
-      InputActionPress(inputAction, 0);
-    else
-      InputActionRelease(inputAction, 0);
+  if (changed_state) {
+    if (is_pressed) inputActionPress(input_action, 0);
+    else inputActionRelease(input_action, 0);
   }
 
-  return changedState;
+  return changed_state;
 }

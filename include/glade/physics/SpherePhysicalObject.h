@@ -2,12 +2,13 @@
 
 #include <glade/physics/PhysicalObject.h>
 
-class SpherePhysicalObject: public PhysicalObject
-{
-  public:
-    SpherePhysicalObject(GladeObject *entity, float radius, PhysicalObject::Type type = PhysicalObject::Type::STATIC): PhysicalObject(entity, type), radius(radius) {}
-    void* getGjkSupportFunction() override;
+class SpherePhysicalObject : public PhysicalObject {
+public:
+  SpherePhysicalObject(GladeObject *entity_, float radius_,
+                       PhysicalObject::Type type_ = PhysicalObject::Type::STATIC)
+      : PhysicalObject(entity_, type_), radius(radius_) {}
 
-    float radius;
+  void *getGjkSupportFunction() override;
+
+  float radius;
 };
-

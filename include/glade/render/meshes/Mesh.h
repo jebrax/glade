@@ -5,70 +5,51 @@
 #include "glade/debug/log.h"
 
 namespace Glade {
-  class Mesh {
-    public:
-      Mesh() :
-        vertexVboId(-1),
-        indexVboId(-1),
-        vaoId(-1),
-        neverErase(false)
-      {
-      }
 
-      typedef std::vector<float> Vertices;
-      typedef Vertices::iterator VerticesI;
+class Mesh {
+public:
+  Mesh() : vertexVboId(-1), indexVboId(-1), vaoId(-1), neverErase(false) {}
 
-      typedef std::vector<uint32_t> Indices;
-      typedef Indices::iterator     IndicesI;
+  typedef std::vector<float> Vertices;
+  typedef Vertices::iterator VerticesI;
 
-      short int vertexVboId, indexVboId, vaoId;
-      Vertices vertices;
-      Indices indices;
+  typedef std::vector<uint32_t> Indices;
+  typedef Indices::iterator IndicesI;
 
-      bool neverErase;
-      
-      virtual float* getVertices()
-      {
-        return vertices.data();
-      }
+  short int vertexVboId, indexVboId, vaoId;
+  Vertices vertices;
+  Indices indices;
 
-      virtual uint32_t* getIndices()
-      {
-        return indices.data();
-      }
+  bool neverErase;
 
-      virtual unsigned int getVertexBufferSize()
-      {
-        return vertices.size();
-      }
+  virtual float *getVertices() { return vertices.data(); }
+  virtual uint32_t *getIndices() { return indices.data(); }
+  virtual unsigned int getVertexBufferSize() { return vertices.size(); }
+  virtual unsigned int getIndexBufferSize() { return indices.size(); }
 
-      virtual unsigned int getIndexBufferSize()
-      {
-        return indices.size();
-      }
+  virtual void erase(void) {
+    if (!neverErase) {
+      vertices.clear();
+      indices.clear();
+    }
+  }
 
-      virtual void erase(void) {
-        if (!neverErase) {
-          vertices.clear();
-          indices.clear();
-        }
-      }
+  Mesh *clone() {
+    Mesh *mesh = new Mesh();
+    mesh->vertices.assign(vertices.begin(), vertices.end());
+    mesh->indices.assign(indices.begin(), indices.end());
 
-      Mesh* clone() {
-        Mesh *mesh = new Mesh();
-        mesh->vertices.assign(vertices.begin(), vertices.end());
-        mesh->indices.assign(indices.begin(), indices.end());
-        return mesh;
-      }
-    
-      bool hasVideoBufferHandle()
-      {
-        if (indexVboId < 0) {
-          assert(vertexVboId < 0);
-          return false;
-        }
-        
-        return true;
-      }
-  };
+    return mesh;
+  }
+
+  bool hasVideoBufferHandle() {
+    if (indexVboId < 0) {
+      assert(vertexVboId < 0);
+      return false;
+    }
+
+    return true;
+  }
+};
+
 }

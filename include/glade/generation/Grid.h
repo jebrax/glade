@@ -9,33 +9,25 @@
 
 class GladeObject;
 
-struct Grid
-{
+struct Grid {
   static const int CHUNK_HEIGHT = 60;
 
-  struct Cell
-  {
-    Cell(const Glade::Vector3i& relativeCellIndex, float cellSize, GladeObject *chunkEntity):
-      startingVertexIndex(-1),
-      numVertices(-1),
-      chunkEntity(chunkEntity),
-      relativeCellIndex(relativeCellIndex),
-      cellSize(cellSize)
-    {
+  struct Cell {
+    Cell(const Glade::Vector3i &relative_cell_index, float cell_size, GladeObject *chunk_entity)
+        : startingVertexIndex(-1), numVertices(-1), chunkEntity(chunk_entity),
+          relativeCellIndex(relative_cell_index), cellSize(cell_size) {
       for (int i = 0; i < 8; ++i) {
         val[i] = 0.6;
       }
 
-      fillRelativePointCoords(cellSize);
+      fillRelativePointCoords(cell_size);
     }
 
-    int getNumberOfPointsWithValueLessThan(float threshold)
-    {
+    int getNumberOfPointsWithValueLessThan(float threshold) {
       int result = 0;
 
       for (int i = 0; i < 8; i++) {
-        if (val[i] < threshold)
-          result++;
+        if (val[i] < threshold) result++;
       }
 
       return result;
@@ -45,15 +37,13 @@ struct Grid
       int result = 0;
 
       for (int i = 0; i < 8; i++) {
-        if (val[i] > threshold)
-          result++;
+        if (val[i] > threshold) result++;
       }
 
       return result;
     }
 
-    float sumValues()
-    {
+    float sumValues() {
       float result = 0;
 
       for (int i = 0; i < 8; i++)
@@ -62,28 +52,21 @@ struct Grid
       return result;
     }
 
-    GladeObject* getChunkEntity() {
-      return chunkEntity;
-    }
+    GladeObject *getChunkEntity() { return chunkEntity; }
+    void setChunkEntity(GladeObject *chunk_entity) { this->chunkEntity = chunk_entity; }
 
-    void setChunkEntity(GladeObject *chunkEntity) {
-      this->chunkEntity = chunkEntity;
-    }
-
-    void serialize(Glade::MemoryOutputStream &stream)
-    {
-      stream.Write(relativeCellIndex);
+    void serialize(Glade::MemoryOutputStream &stream) {
+      stream.write(relativeCellIndex);
 
       for (int i = 0; i < 8; i++)
-        stream.Write(val[i]);
+        stream.write(val[i]);
     }
 
-    void unserialize(Glade::MemoryInputStream &stream)
-    {
-      stream.Read(relativeCellIndex);
+    void unserialize(Glade::MemoryInputStream &stream) {
+      stream.read(relativeCellIndex);
 
       for (int i = 0; i < 8; i++)
-        stream.Read(val[i]);
+        stream.read(val[i]);
 
       fillRelativePointCoords(cellSize);
     }
@@ -93,77 +76,75 @@ struct Grid
     int startingVertexIndex, numVertices;
 
   private:
-      void fillRelativePointCoords(float cellSize) {
-        float x = relativeCellIndex.x * cellSize;
-        float y = relativeCellIndex.y * cellSize;
-        float z = relativeCellIndex.z * cellSize;
+    void fillRelativePointCoords(float cell_size) {
+      float x = relativeCellIndex.x * cell_size;
+      float y = relativeCellIndex.y * cell_size;
+      float z = relativeCellIndex.z * cell_size;
 
-        p[0] = Glade::Vector3f(x, y, z);
-        p[1] = Glade::Vector3f(x + cellSize, y, z),
-        p[2] = Glade::Vector3f(x + cellSize, y, z + cellSize),
-        p[3] = Glade::Vector3f(x, y, z + cellSize),
-        p[4] = Glade::Vector3f(x, y + cellSize, z),
-        p[5] = Glade::Vector3f(x + cellSize, y + cellSize, z),
-        p[6] = Glade::Vector3f(x + cellSize, y + cellSize, z + cellSize),
-        p[7] = Glade::Vector3f(x, y + cellSize, z + cellSize);
-      }
+      p[0] = Glade::Vector3f(x, y, z);
+      p[1] = Glade::Vector3f(x + cell_size, y, z),
+      p[2] = Glade::Vector3f(x + cell_size, y, z + cell_size),
+      p[3] = Glade::Vector3f(x, y, z + cell_size), p[4] = Glade::Vector3f(x, y + cell_size, z),
+      p[5] = Glade::Vector3f(x + cell_size, y + cell_size, z),
+      p[6] = Glade::Vector3f(x + cell_size, y + cell_size, z + cell_size),
+      p[7] = Glade::Vector3f(x, y + cell_size, z + cell_size);
+    }
 
-      GladeObject *chunkEntity;
-      float cellSize;
-      Glade::Vector3i relativeCellIndex;
+    GladeObject *chunkEntity;
+    float cellSize;
+    Glade::Vector3i relativeCellIndex;
   };
 
   typedef std::unordered_map<Glade::Vector3i, Cell> Cells;
   typedef Cells::iterator CellsI;
-  typedef std::unordered_map<Glade::Vector3i, std::vector<int>*> AdjacencyMap;
+  typedef std::unordered_map<Glade::Vector3i, std::vector<int> *> AdjacencyMap;
   typedef AdjacencyMap::iterator AdjacencyMapI;
 
-  typedef std::unordered_map<Glade::Vector2i, GladeObject*> Chunks;
+  typedef std::unordered_map<Glade::Vector2i, GladeObject *> Chunks;
   typedef Chunks::iterator ChunksI;
 
-  Grid(int chunkSizeCells, float cellSize);
+  Grid(int chunk_size_cells, float cell_size);
   ~Grid();
+  Cell &getOrCreateCell(const Glade::Vector3i &cell_index, bool force_create = false);
+  Cell *getCell(const Glade::Vector3i &cell_index);
+  void setCell(const Glade::Vector3i &cell_index, const Grid::Cell &cell);
+  void addValueAtCubeVertex(const Glade::Vector3i &cell_index, int cube_vert_index, float adder);
+  void setValueAtCubeVertex(const Glade::Vector3i &cell_index, int cube_vert_index, float val);
 
-  Cell& getOrCreateCell(const Glade::Vector3i& cellIndex, bool forceCreate = false);
-  Cell* getCell(const Glade::Vector3i& cellIndex);
-  void setCell(const Glade::Vector3i& cellIndex, const Grid::Cell& cell);
-  void addValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float adder);
-  void setValueAtCubeVertex(const Glade::Vector3i &cellIndex, int cubeVertIndex, float val);
-  void addValueAtCell(const Glade::Vector3i &centralCellIndex, float adder, int cube_vert_index = -1);
-  void setValueAtCell(const Glade::Vector3i &centralCellIndex, float value, int cube_vert_index = -1);
+  void addValueAtCell(const Glade::Vector3i &central_cell_index, float adder,
+                      int cube_vert_index = -1);
+
+  void setValueAtCell(const Glade::Vector3i &central_cell_index, float value,
+                      int cube_vert_index = -1);
 
   // conversion functions
   int coordToCellCoord(float coord) const;
-  int cellCoordToChunkCoord(int cellCoord) const;
+  int cellCoordToChunkCoord(int cell_coord) const;
   Glade::Vector3i pointToCellIndex(const Glade::Vector3f &point) const;
-  Glade::Vector2i cellIndexToChunkIndex(const Glade::Vector3i &cellIndex) const;
-  Glade::Vector3f chunkPoint(const Glade::Vector2i &chunkIndex) const;
-  int relativeCellCoord(int absoluteCellCoord) const;
-  Glade::Vector3i absoluteCellIndex(const Glade::Vector3i &relativeCellIndex, const Glade::Vector2i &chunkIndex) const;
-  Glade::Vector3f relativeCellPoint(const Glade::Vector3i &relativeCellIndex) const;
-  Glade::Vector3i chunkCenterCellIndex(const Glade::Vector2i &chunkIndex) const;
+  Glade::Vector2i cellIndexToChunkIndex(const Glade::Vector3i &cell_index) const;
+  Glade::Vector3f chunkPoint(const Glade::Vector2i &chunk_index) const;
+  int relativeCellCoord(int absolute_cell_coord) const;
 
-  void getAdjacentChunks(const Glade::Vector3i &cellIndex, std::vector<Glade::Vector2i> &result);
-  void getCubeVertexWorldPositions(const Glade::Vector3i &cellIndex, Glade::Vector3f p[]);
-  bool doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i& cellCoord);
+  Glade::Vector3i absoluteCellIndex(const Glade::Vector3i &relative_cell_index,
+                                    const Glade::Vector2i &chunk_index) const;
 
-  void addChunk(int i, int j, GladeObject* obj) {
-    return addChunk(Glade::Vector2i(i, j), obj);
+  Glade::Vector3f relativeCellPoint(const Glade::Vector3i &relative_cell_index) const;
+  Glade::Vector3i chunkCenterCellIndex(const Glade::Vector2i &chunk_index) const;
+  void getAdjacentChunks(const Glade::Vector3i &cell_index, std::vector<Glade::Vector2i> &result);
+  void getCubeVertexWorldPositions(const Glade::Vector3i &cell_index, Glade::Vector3f p[]);
+  bool doesCubeVertBelongInTheCell(float x, float y, float z, Glade::Vector3i &cell_coord);
+  void addChunk(int i, int j, GladeObject *obj) { return addChunk(Glade::Vector2i(i, j), obj); }
+
+  void addChunk(const Glade::Vector2i &chunk_index, GladeObject *obj) {
+    chunks.emplace(chunk_index, obj);
   }
 
-  void addChunk(const Glade::Vector2i &chunkIndex, GladeObject* obj) {
-    chunks.emplace(chunkIndex, obj);
-  }
+  GladeObject *getChunk(int i, int j) { return getChunk(Glade::Vector2i(i, j)); }
 
-  GladeObject* getChunk(int i, int j) {
-    return getChunk(Glade::Vector2i(i, j));
-  }
+  GladeObject *getChunk(const Glade::Vector2i &chunk_index) {
+    auto chunki = chunks.find(chunk_index);
 
-  GladeObject* getChunk(const Glade::Vector2i &chunkIndex) {
-    auto chunki = chunks.find(chunkIndex);
-
-    if (chunki == chunks.end())
-      return nullptr;
+    if (chunki == chunks.end()) return nullptr;
 
     return chunki->second;
   }
@@ -189,4 +170,3 @@ private:
 
   pthread_mutex_t mCellsLock;
 };
-

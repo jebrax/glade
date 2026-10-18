@@ -6,8 +6,8 @@
 namespace Glade {
 
 struct SpriteAnimation {
-    std::vector<AnimationFrame> frames;
-    bool loop;
+  std::vector<AnimationFrame> frames;
+  bool loop;
 };
 
 } // namespace Glade

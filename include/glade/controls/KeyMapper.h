@@ -3,25 +3,22 @@
 #include <glade/controls/Key.h>
 #include <unordered_map>
 
-namespace Glade
-{
-  class KeyMapper
-  {
-  public:
-    void Remap(Glade::Key key, unsigned int action) {
-      mKeyToActionMapping[key] = action;
-    }
+namespace Glade {
 
-    unsigned int GetMappedAction(Glade::Key key) {
-      auto entry = mKeyToActionMapping.find(key);
+class KeyMapper {
+public:
+  void remap(Glade::Key key, unsigned int action) { mKeyToActionMapping[key] = action; }
 
-      if (entry == mKeyToActionMapping.end())
-        return 0;
+  unsigned int getMappedAction(Glade::Key key) {
+    auto entry = mKeyToActionMapping.find(key);
 
-      return entry->second;
-    }
+    if (entry == mKeyToActionMapping.end()) return 0;
 
-  private:
-    std::unordered_map<Glade::Key, unsigned int> mKeyToActionMapping;
-  };
+    return entry->second;
+  }
+
+private:
+  std::unordered_map<Glade::Key, unsigned int> mKeyToActionMapping;
+};
+
 }

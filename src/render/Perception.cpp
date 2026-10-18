@@ -1,10 +1,8 @@
 #include <glade/math/Vector.h>
 #include <glade/render/Perception.h>
 
-Perception::Perception():
-  baseLightDirection(0.4f, 0.7f,  -0.2f),
-  lightDirection(baseLightDirection)
-{
+Perception::Perception()
+    : baseLightDirection(0.4f, 0.7f, -0.2f), lightDirection(baseLightDirection) {
   /*
   baseLightDirection.normalize();
   lightDirection.set(baseLightDirection);
@@ -17,8 +15,7 @@ Perception::Perception():
   */
 }
 
-void Perception::adjust()
-{
+void Perception::adjust() {
   /*
   // rotating the light direction vector
   Glade::Vector4f rotatedVector;

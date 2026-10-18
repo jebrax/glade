@@ -5,33 +5,30 @@
 #include "glade/ui/Widget.h"
 #include "glade/math/Transform.h"
 
-class SequenceLayout : public Layout
-{
-  public:
-    virtual void calculateTransformsForDirectChildrenOf(Widget* widget) const
-    {
-      rescaleChildrenOf(widget);
-      
-      Transform* parentTransform = widget->getTransform();
-      
-      float
-        currentX = parentTransform->getPosition()->x + padding.w,
-        currentY = parentTransform->getPosition()->y + padding.x,
-        currentZ = parentTransform->getPosition()->z;
-      
-      Widget::Children* children = widget->getChildren();
-      
-      for (Widget::ChildrenI child = children->begin(); child != children->end(); ++child) {
-        Transform* childTransform = (*child)->getTransform();
-        Transform::SharedVector childScale = childTransform->getScale();
-        Transform::SharedVector childPosition = childTransform->getPosition();
-        Transform::SharedVector parentScale = parentTransform->getScale();
-        
-        childPosition->x = currentX - parentScale->x + childScale->x;
-        childPosition->y = currentY - parentScale->y + childScale->y;
-        childPosition->z = currentZ;
-        
-        currentX += 2 * childScale->x;
-      }
+class SequenceLayout : public Layout {
+public:
+  virtual void calculateTransformsForDirectChildrenOf(Widget *widget) const {
+    rescaleChildrenOf(widget);
+
+    Transform *parent_transform = widget->getTransform();
+
+    float current_x = parent_transform->getPosition()->x + padding.w,
+          current_y = parent_transform->getPosition()->y + padding.x,
+          current_z = parent_transform->getPosition()->z;
+
+    Widget::Children *children = widget->getChildren();
+
+    for (Widget::ChildrenI child = children->begin(); child != children->end(); ++child) {
+      Transform *child_transform = (*child)->getTransform();
+      Transform::SharedVector child_scale = child_transform->getScale();
+      Transform::SharedVector child_position = child_transform->getPosition();
+      Transform::SharedVector parent_scale = parent_transform->getScale();
+
+      child_position->x = current_x - parent_scale->x + child_scale->x;
+      child_position->y = current_y - parent_scale->y + child_scale->y;
+      child_position->z = current_z;
+
+      current_x += 2 * child_scale->x;
     }
+  }
 };

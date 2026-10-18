@@ -7,49 +7,46 @@ class Context;
 struct _ENetPeer;
 typedef _ENetPeer ENetPeer;
 
-namespace Glade
-{
-  class NetworkManager
-  {
-    enum MessageType {
-      LOGIN = 0,
-      OBJECT_REPLICA,
-      CLIENT_INPUT,
-      MESSAGE_TYPE_MAX
-    };
+namespace Glade {
 
-    static constexpr char DEFAULT_SERVER_HOST[] = "localhost";
-    static constexpr unsigned int DEFAULT_SERVER_PORT = 58314;
+class NetworkManager {
+  enum MessageType { LOGIN = 0, OBJECT_REPLICA, CLIENT_INPUT, MESSAGE_TYPE_MAX };
 
-    static unsigned int nextUserId;
+  static constexpr char DEFAULT_SERVER_HOST[] = "localhost";
+  static constexpr unsigned int DEFAULT_SERVER_PORT = 58314;
 
-    public:
-      NetworkManager(Context* context, bool server);
-      ~NetworkManager();
-      bool isServer() { return mServer; }
+  static unsigned int nextUserId;
 
-      // call only from main thread
-      void addObject(GladeObject *object);
-      int connectToServer(const char *host = DEFAULT_SERVER_HOST, unsigned int port = DEFAULT_SERVER_PORT);
-      bool send(void *peer, const unsigned char *data, int length, bool reliable);
-      bool sendInputActionToServer(unsigned int inputAction, bool isPressed);
-      bool sendToServer(const unsigned char *data, int length, bool reliable = false);
-      // call only from main thread
-      void process();
-      unsigned int getCurrentUserId() { return mCurrentUserId; }
+public:
+  NetworkManager(Context *context, bool server);
+  ~NetworkManager();
+  bool isServer() { return mServer; }
 
-    private:
-      int initServer(unsigned int port = DEFAULT_SERVER_PORT);
-      int initClient();
-      void processNetworkEvents(void *host);
-      void processIncomingData(unsigned char *data, unsigned int size);
-      void sendReplicas(const std::set<ENetPeer*> &toClients, bool forceAllObjects = false);
+  // call only from main thread
+  void addObject(GladeObject *object);
 
-      Context *mContext;
-      bool mServer;
-      bool mInitialized;
-      unsigned int mCurrentUserId;
-      std::set<GladeObject*> mReplicatedObjects;
-  };
+  int connectToServer(const char *host = DEFAULT_SERVER_HOST,
+                      unsigned int port = DEFAULT_SERVER_PORT);
+
+  bool send(void *peer, const unsigned char *data, int length, bool reliable);
+  bool sendInputActionToServer(unsigned int input_action, bool is_pressed);
+  bool sendToServer(const unsigned char *data, int length, bool reliable = false);
+  // call only from main thread
+  void process();
+  unsigned int getCurrentUserId() { return mCurrentUserId; }
+
+private:
+  int initServer(unsigned int port = DEFAULT_SERVER_PORT);
+  int initClient();
+  void processNetworkEvents(void *host);
+  void processIncomingData(unsigned char *data, unsigned int size);
+  void sendReplicas(const std::set<ENetPeer *> &to_clients, bool force_all_objects = false);
+
+  Context *mContext;
+  bool mServer;
+  bool mInitialized;
+  unsigned int mCurrentUserId;
+  std::set<GladeObject *> mReplicatedObjects;
+};
+
 }
-

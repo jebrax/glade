@@ -2,11 +2,7 @@
 
 #include "GladeException.h"
 
-class GladeFileNotFoundException: public GladeException
-{ 
+class GladeFileNotFoundException : public GladeException {
 public:
-  GladeFileNotFoundException(const char* message):
-    GladeException(message)
-  {
-  }
+  GladeFileNotFoundException(const char *message_) : GladeException(message_) {}
 };

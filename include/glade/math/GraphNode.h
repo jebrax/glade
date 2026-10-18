@@ -4,24 +4,16 @@
 
 class GraphEdge;
 
-class GraphNode
-{
-  public:
-    typedef std::set<GraphEdge*>           GraphEdges;
-    typedef std::set<GraphEdge*>::iterator GraphEdgesI;
-    
-  private:
-    GraphEdges waysOut;
-    GraphEdges waysIn;
+class GraphNode {
+public:
+  typedef std::set<GraphEdge *> GraphEdges;
+  typedef std::set<GraphEdge *>::iterator GraphEdgesI;
 
-  public:
-    GraphEdges* getWaysOut(void)
-    {
-      return &waysOut;
-    }
-    
-    GraphEdges* getWaysIn(void)
-    {
-      return &waysIn;
-    }
+private:
+  GraphEdges waysOut;
+  GraphEdges waysIn;
+
+public:
+  GraphEdges *getWaysOut(void) { return &waysOut; }
+  GraphEdges *getWaysIn(void) { return &waysIn; }
 };
