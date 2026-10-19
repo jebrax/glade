@@ -2,6 +2,7 @@
 #include <glade/collisions/Collider.h>
 #include <glade/collisions/CollisionShape.h>
 
+#include "ConvexQueries.h"
 #include "RectangleQueries.h"
 
 #include <algorithm>
@@ -14,6 +15,7 @@ namespace {
 void require_supported_shape(const CollisionShape &shape) {
   switch (shape.getType()) {
   case CollisionShape::Type::RECTANGLE:
+  case CollisionShape::Type::CONVEX_POLYGON:
     return;
   }
 
@@ -83,7 +85,17 @@ std::vector<OverlapResult> CollisionWorld::queryOverlaps(
   for (const auto &entry : entries) {
     if (!filter.accepts(*entry.collider) || !bounds.intersects(entry.bounds)) continue;
 
-    auto manifold = ::overlap_rectangles(bounds, entry.bounds);
+    const auto &obstacle_shape = entry.collider->getShape();
+    std::optional<CollisionManifold> manifold;
+
+    if (shape.getType() == CollisionShape::Type::RECTANGLE &&
+        obstacle_shape.getType() == CollisionShape::Type::RECTANGLE) {
+      manifold = ::overlap_rectangles(bounds, entry.bounds);
+    } else {
+      Transform obstacle_transform;
+      entry.collider->getWorldTransform(obstacle_transform);
+      manifold = ::overlap_convex_shapes(shape, world_transform, obstacle_shape, obstacle_transform);
+    }
 
     if (manifold) {
       result.push_back({entry.collider, std::move(*manifold)});
@@ -109,7 +121,18 @@ ShapeCastResult CollisionWorld::castShape(
   for (const auto &entry : entries) {
     if (!filter.accepts(*entry.collider) || !swept_bounds.intersects(entry.bounds)) continue;
 
-    auto hit = ::cast_rectangles(bounds, displacement, entry.bounds);
+    const auto &obstacle_shape = entry.collider->getShape();
+    NarrowphaseCastResult hit;
+
+    if (shape.getType() == CollisionShape::Type::RECTANGLE &&
+        obstacle_shape.getType() == CollisionShape::Type::RECTANGLE) {
+      hit = ::cast_rectangles(bounds, displacement, entry.bounds);
+    } else {
+      Transform obstacle_transform;
+      entry.collider->getWorldTransform(obstacle_transform);
+      hit = ::cast_convex_shapes(shape, world_transform, displacement,
+                                 obstacle_shape, obstacle_transform);
+    }
 
     if (!hit.hit || (result.hit && hit.fraction > result.fraction)) continue;
 

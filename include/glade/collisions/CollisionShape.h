@@ -7,7 +7,8 @@
 class CollisionShape {
 public:
   enum class Type {
-    RECTANGLE
+    RECTANGLE,
+    CONVEX_POLYGON
   };
 
   virtual ~CollisionShape() = default;

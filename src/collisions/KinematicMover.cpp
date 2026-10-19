@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -87,6 +88,45 @@ bool advance_if_clear(CollisionWorld &world, Collider &collider, const Collision
   world.update(collider);
 
   return true;
+}
+
+Glade::Vector3f constrain_movement(const Glade::Vector3f &movement,
+                                   const std::vector<Glade::Vector3f> &normals) {
+  const double magnitude = std::hypot(double(movement.x), double(movement.y));
+  const double roundoff = 64.0 * std::numeric_limits<double>::epsilon() * magnitude;
+  const auto feasible = [&](double x, double y) {
+    return std::all_of(normals.begin(), normals.end(), [&](const Glade::Vector3f &normal) {
+      return x * normal.x + y * normal.y >= -roundoff;
+    });
+  };
+
+  if (feasible(movement.x, movement.y)) return movement;
+
+  // In 2D the closest feasible displacement is on a constraint boundary or
+  // at the origin. Test each boundary against all normals: sequential normal
+  // projections can reintroduce movement into an earlier non-orthogonal face.
+  Glade::Vector3f best;
+  double best_distance = double(movement.x) * movement.x + double(movement.y) * movement.y;
+
+  for (const auto &normal : normals) {
+    const double length_squared = double(normal.x) * normal.x + double(normal.y) * normal.y;
+    const double into = (double(movement.x) * normal.x + double(movement.y) * normal.y) /
+                        length_squared;
+    const double x = movement.x - normal.x * into;
+    const double y = movement.y - normal.y * into;
+
+    if (!feasible(x, y)) continue;
+
+    const double distance = (x - movement.x) * (x - movement.x) +
+                            (y - movement.y) * (y - movement.y);
+
+    if (distance < best_distance) {
+      best_distance = distance;
+      best.set(float(x), float(y), 0.0f);
+    }
+  }
+
+  return best;
 }
 
 Glade::Vector3f position_delta(const Collider &collider, const Glade::Vector3f &start) {
@@ -177,14 +217,7 @@ MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) 
     Glade::Vector3f constrained(remaining.x * (1.0f - fraction),
                               remaining.y * (1.0f - fraction), 0.0f);
 
-    for (const auto &normal : normals) {
-      const float into = constrained.x * normal.x + constrained.y * normal.y;
-
-      if (into < 0.0f) {
-        constrained.x -= normal.x * into;
-        constrained.y -= normal.y * into;
-      }
-    }
+    constrained = ::constrain_movement(constrained, normals);
 
     result.status = MoveStatus::BLOCKED;
 

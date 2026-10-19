@@ -1,7 +1,9 @@
 #include <glade/GladeObject.h>
 #include <glade/collisions/CollisionWorld.h>
 #include <glade/collisions/RectangleCollisionShape.h>
+#include <glade/collisions/ConvexPolygonCollisionShape.h>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -297,6 +299,338 @@ void test_registration_and_validation() {
   std::cout << "PASS: registration lifetime, optional collider, invalid geometry rejection\n";
 }
 
+void test_polygon_validation_and_bounds() {
+  ConvexPolygonCollisionShape clockwise({{0, 0}, {0, 4}, {4, 0}});
+  const auto &vertices = clockwise.getVertices();
+  const auto &a = vertices[0];
+  const auto &b = vertices[1];
+  const auto &c = vertices[2];
+  ::require((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0,
+            "Clockwise input is normalised to counterclockwise");
+  Transform transform;
+  transform.setPosition(-10, 20, 100);
+  transform.setRotation(0, 0, 2);
+  transform.setScale(10, 20, 30);
+  const auto bounds = clockwise.computeBounds(transform);
+  ::require(bounds.min.x == -10 && bounds.min.y == 20 &&
+                bounds.max.x == -6 && bounds.max.y == 24,
+            "Polygon bounds translate local vertices and ignore Z/rotation/scale");
+  ::rejects([] { ConvexPolygonCollisionShape shape({}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {1, 0}}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {1, 0}, {2, 0}}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {1, 0}, {1, 0}, {0, 1}}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {1, 0}, {2, 0}, {0, 1}}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {2, 0}, {1, 1}, {2, 2}, {0, 2}}); });
+  ::rejects([] { ConvexPolygonCollisionShape shape({{0, 0}, {2, 2}, {0, 2}, {2, 0}}); });
+  ::rejects([] {
+    ConvexPolygonCollisionShape shape({{0, 0}, {2, 3}, {4, 0}, {0, 2}, {4, 2}});
+  });
+  ::rejects([] {
+    ConvexPolygonCollisionShape shape({{0, 0}, {1, 0},
+        {0, std::numeric_limits<float>::quiet_NaN()}});
+  });
+  transform.setPosition(std::numeric_limits<float>::infinity(), 0, 0);
+  ::rejects([&] { clockwise.computeBounds(transform); });
+  std::cout << "PASS: convex boundary validation, winding, translated bounds and transform contract\n";
+}
+
+void test_rectangle_polygon_intersections() {
+  ConvexPolygonCollisionShape triangle({{0, 0}, {4, 0}, {0, 4}});
+  RectangleCollisionShape rectangle(0.25f, 0.25f);
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(triangle);
+  CollisionWorld world;
+  world.add(collider);
+  Transform transform;
+  // Independent geometric oracle: the rectangle clipped to the triangle's
+  // bounding square intersects x+y<=4 iff its lower-left clipped corner does.
+  int cases = 0;
+
+  for (int ix = -4; ix <= 20; ++ix) {
+    for (int iy = -4; iy <= 20; ++iy) {
+      const float x = ix * 0.25f;
+      const float y = iy * 0.25f;
+      transform.setPosition(x, y, 0);
+      const bool expected = x + 0.25f >= 0 && y + 0.25f >= 0 &&
+          x - 0.25f <= 4 && y - 0.25f <= 4 &&
+          std::max(0.0f, x - 0.25f) + std::max(0.0f, y - 0.25f) <= 4;
+      const auto overlaps = world.queryOverlaps(rectangle, transform);
+      if ((!overlaps.empty()) != expected) {
+        std::cerr << "Grid mismatch x=" << x << " y=" << y << " expected=" << expected << '\n';
+        throw std::runtime_error("Rectangle/triangle grid matches geometric oracle");
+      }
+
+      if (expected) {
+        const auto &manifold = overlaps[0].manifold;
+        ::require(::near(manifold.normal.x * manifold.normal.x +
+                            manifold.normal.y * manifold.normal.y, 1), "Polygon normal is unit length");
+        ::require(!manifold.points.empty() && manifold.points.size() <= 2,
+                  "Polygon contact has one or two points");
+
+        for (const auto &point : manifold.points) {
+          ::require(point.separation <= 0 && point.position.z == 0,
+                    "Signed polygon contact in physical X/Y");
+          const float px = point.position.x;
+          const float py = point.position.y;
+          ::require(px >= -0.00001f && py >= -0.00001f && px + py <= 4.00001f &&
+                        (::near(px, 0) || ::near(py, 0) || ::near(px + py, 4)),
+                    "Contacts lie on actual triangle boundary");
+        }
+      }
+
+      ++cases;
+    }
+  }
+
+  transform.setPosition(2.25f, 2.25f, 0);
+  const auto touching = world.queryOverlaps(rectangle, transform);
+  ::require(touching.size() == 1 && touching[0].manifold.points[0].separation == 0,
+            "Angled face touching included");
+  ::require(::near(touching[0].manifold.normal.x, std::sqrt(0.5f)) &&
+                ::near(touching[0].manifold.normal.y, std::sqrt(0.5f)),
+            "Slanted normal points out of terrain towards rectangle");
+  transform.setPosition(2, 2, 0);
+  const auto penetrating = world.queryOverlaps(rectangle, transform);
+  ::require(::near(penetrating[0].manifold.points[0].separation, -std::sqrt(0.125f)),
+            "Angled penetration is perpendicular separation distance");
+  transform.setPosition(3.5f, 3.5f, 0);
+  ::require(world.queryBounds(rectangle.computeBounds(transform)).size() == 1 &&
+                world.queryOverlaps(rectangle, transform).empty(),
+            "Overlapping bounds do not imply polygon intersection");
+  collider.getTransform()->setPosition(1, 2, 50);
+  terrain.getTransform()->setPosition(-10, 20, -100);
+  world.update(collider);
+  transform.setPosition(-7, 24, 0);
+  ::require(world.queryOverlaps(rectangle, transform).size() == 1,
+            "Polygon owner/local offsets and updated bounds participate");
+  collider.setSensor(true);
+  ::require(world.queryOverlaps(rectangle, transform).empty(), "Polygon sensor filtering");
+  CollisionFilter filter;
+  filter.includeSensors = true;
+  ::require(world.queryOverlaps(rectangle, transform, filter).size() == 1,
+            "Polygon sensors can be included");
+  world.clear();
+  std::cout << "PASS: " << cases << " rectangle/triangle intersections, contacts, bounds rejection, offsets, sensors\n";
+}
+
+void test_polygon_pairs_and_containment() {
+  ConvexPolygonCollisionShape square({{-2, -2}, {2, -2}, {2, 2}, {-2, 2}});
+  ConvexPolygonCollisionShape diamond({{0, -0.5f}, {0.5f, 0}, {0, 0.5f}, {-0.5f, 0}});
+  RectangleCollisionShape rectangle(0.5f, 0.5f);
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(square);
+  CollisionWorld world;
+  world.add(collider);
+  Transform transform;
+  const auto contained = world.queryOverlaps(rectangle, transform);
+  ::require(contained.size() == 1 &&
+                ::near(contained[0].manifold.points[0].separation, -2.5f),
+            "Rectangle containment uses exit distance, not interval intersection width");
+  ::require(world.queryOverlaps(diamond, transform).size() == 1,
+            "Polygon/polygon containment");
+  world.remove(collider);
+  terrain.clearCollider();
+  auto &rectangle_collider = terrain.setCollider(rectangle);
+  world.add(rectangle_collider);
+  transform.setPosition(0.75f, 0, 0);
+  const auto reverse = world.queryOverlaps(diamond, transform);
+  ::require(reverse.size() == 1 && reverse[0].manifold.normal.x > 0,
+            "Polygon query against rectangle has outward normal");
+  transform.setPosition(3, 0, 0);
+  const auto cast = world.castShape(diamond, transform, {-5, 0, 0});
+  ::require(cast.hit && ::near(cast.fraction, 0.4f) &&
+                cast.contacts[0].manifold.normal.x == 1,
+            "Polygon casts against rectangle");
+  world.clear();
+  terrain.clearCollider();
+  auto &polygon_collider = terrain.setCollider(diamond);
+  world.add(polygon_collider);
+  const auto polygon_cast = world.castShape(diamond, transform, {-5, 0, 0});
+  ::require(polygon_cast.hit && ::near(polygon_cast.fraction, 0.4f),
+            "Polygon/polygon swept vertex contact");
+  world.clear();
+  std::cout << "PASS: containment, polygon/rectangle and polygon/polygon overlaps and casts\n";
+}
+
+void test_many_vertex_polygon_intersections() {
+  const std::vector<Glade::Vector2f> vertices{{-2, -2}, {2, -2}, {3, 0}, {1, 3}, {-2, 2}};
+  ConvexPolygonCollisionShape polygon(vertices);
+  RectangleCollisionShape rectangle(0.25f, 0.5f);
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(polygon);
+  CollisionWorld world;
+  world.add(collider);
+  Transform transform;
+  const auto cross = [](const Glade::Vector2f &a, const Glade::Vector2f &b,
+                        const Glade::Vector2f &c) {
+    return double(b.x - a.x) * (c.y - a.y) - double(b.y - a.y) * (c.x - a.x);
+  };
+  const auto inside = [&](const Glade::Vector2f &point) {
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
+      if (cross(vertices[i], vertices[(i + 1) % vertices.size()], point) < 0) return false;
+    }
+
+    return true;
+  };
+  const auto intersects = [&](const Glade::Vector2f &a, const Glade::Vector2f &b,
+                              const Glade::Vector2f &c, const Glade::Vector2f &d) {
+    return cross(a, b, c) * cross(a, b, d) <= 0 &&
+           cross(c, d, a) * cross(c, d, b) <= 0 &&
+           std::max(std::min(a.x, b.x), std::min(c.x, d.x)) <=
+               std::min(std::max(a.x, b.x), std::max(c.x, d.x)) &&
+           std::max(std::min(a.y, b.y), std::min(c.y, d.y)) <=
+               std::min(std::max(a.y, b.y), std::max(c.y, d.y));
+  };
+  int cases = 0;
+
+  for (int ix = -16; ix <= 16; ++ix) {
+    for (int iy = -16; iy <= 16; ++iy) {
+      const float x = ix * 0.25f;
+      const float y = iy * 0.25f;
+      const std::vector<Glade::Vector2f> corners{{x - 0.25f, y - 0.5f},
+          {x + 0.25f, y - 0.5f}, {x + 0.25f, y + 0.5f}, {x - 0.25f, y + 0.5f}};
+      bool expected = false;
+
+      // Independent oracle using vertex containment and segment intersections.
+      for (const auto &corner : corners) expected = expected || inside(corner);
+
+      for (std::size_t i = 0; i < vertices.size(); ++i) {
+        const auto &vertex = vertices[i];
+        expected = expected || (vertex.x >= x - 0.25f && vertex.x <= x + 0.25f &&
+                                vertex.y >= y - 0.5f && vertex.y <= y + 0.5f);
+
+        for (std::size_t j = 0; j < corners.size(); ++j) {
+          expected = expected || intersects(vertex, vertices[(i + 1) % vertices.size()],
+                                             corners[j], corners[(j + 1) % corners.size()]);
+        }
+      }
+
+      transform.setPosition(x, y, 0);
+      const auto overlaps = world.queryOverlaps(rectangle, transform);
+      ::require((!overlaps.empty()) == expected,
+                "Rectangle/pentagon matches independent segment-intersection oracle");
+
+      if (!overlaps.empty()) {
+        const auto &manifold = overlaps[0].manifold;
+        // Applying the reported exit distance plus clearance must separate.
+        const float distance = -manifold.points[0].separation + 0.0001f;
+        Transform separated;
+        separated.setPosition(x + manifold.normal.x * distance,
+                              y + manifold.normal.y * distance, 0);
+        ::require(world.queryOverlaps(rectangle, separated).empty(),
+                  "Polygon manifold normal/depth provides a valid separation");
+      }
+
+      ++cases;
+    }
+  }
+
+  world.clear();
+  std::cout << "PASS: " << cases << " rectangle/pentagon intersections and separation vectors\n";
+}
+
+void test_thin_polygon_casts_and_symmetry() {
+  ConvexPolygonCollisionShape thin({{0, 0}, {0.125f, 0}, {4.125f, 4}, {4, 4}});
+  RectangleCollisionShape rectangle(0.25f, 0.25f);
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(thin);
+  CollisionWorld world;
+  world.add(collider);
+  Transform transform;
+  transform.setPosition(-10, 2, 0);
+  const auto forward = world.castShape(rectangle, transform, {20, 0, 0});
+  ::require(forward.hit && ::near(forward.fraction, 0.575f),
+            "Fast rectangle cast hits thin slanted quadrilateral");
+  transform.setPosition(10, 2, 0);
+  const auto reverse = world.castShape(rectangle, transform, {-20, 0, 0});
+  ::require(reverse.hit && ::near(reverse.fraction, 0.36875f),
+            "Reverse fast cast hits opposite slanted face");
+  world.clear();
+  terrain.clearCollider();
+  auto &rectangle_collider = terrain.setCollider(rectangle);
+  terrain.getTransform()->setPosition(10, 2, 0);
+  world.add(rectangle_collider);
+  transform.setPosition(0, 0, 0);
+  const auto swapped = world.castShape(thin, transform, {20, 0, 0});
+  ::require(swapped.hit && ::near(swapped.fraction, reverse.fraction) &&
+                ::near(swapped.contacts[0].manifold.normal.x,
+                       -reverse.contacts[0].manifold.normal.x) &&
+                ::near(swapped.contacts[0].manifold.normal.y,
+                       -reverse.contacts[0].manifold.normal.y),
+            "Swapping query/target and reversing displacement preserves collision time");
+  world.clear();
+  terrain.clearCollider();
+  std::vector<Glade::Vector2f> vertices;
+
+  for (int i = 0; i < 32; ++i) {
+    const double angle = i * 2.0 * std::acos(-1.0) / 32;
+    vertices.push_back({float(2 * std::cos(angle)), float(2 * std::sin(angle))});
+  }
+
+  ConvexPolygonCollisionShape many_sided(vertices);
+  auto &many_sided_collider = terrain.setCollider(many_sided);
+  terrain.getTransform()->setPosition(0, 0, 0);
+  world.add(many_sided_collider);
+  transform.setPosition(5, 0, 0);
+  const auto many_sided_hit = world.castShape(rectangle, transform, {-10, 0, 0});
+  ::require(many_sided_hit.hit && ::near(many_sided_hit.fraction, 0.275f),
+            "Polygon queries support more than a small fixed vertex count");
+  world.clear();
+  terrain.clearCollider();
+  std::cout << "PASS: thin angled quadrilateral casts, pair symmetry, 32-vertex polygon\n";
+}
+
+void test_polygon_casts() {
+  ConvexPolygonCollisionShape triangle({{0, 0}, {4, 0}, {0, 4}});
+  RectangleCollisionShape rectangle(0.25f, 0.25f);
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(triangle);
+  CollisionWorld world;
+  world.add(collider);
+  Transform transform;
+  transform.setPosition(3, 3, 0);
+  const auto hit = world.castShape(rectangle, transform, {-2, -2, 0});
+  ::require(hit.hit && !hit.startsOverlapping && ::near(hit.fraction, 0.375f) &&
+                hit.contacts.size() == 1, "Sweep hits angled face at analytical time");
+  ::require(::near(hit.contacts[0].manifold.points[0].position.x, 2) &&
+                ::near(hit.contacts[0].manifold.points[0].position.y, 2) &&
+                hit.contacts[0].manifold.points[0].separation == 0,
+            "Angled cast contact is on actual terrain surface");
+  transform.setPosition(2.25f, 2.25f, 0);
+  ::require(world.castShape(rectangle, transform, {-1, -1, 0}).fraction == 0 &&
+                world.castShape(rectangle, transform, {-1, -1, 0}).hit,
+            "Touching angled face blocks inward movement");
+  ::require(!world.castShape(rectangle, transform, {1, 1, 0}).hit &&
+                !world.castShape(rectangle, transform, {1, -1, 0}).hit &&
+                !world.castShape(rectangle, transform, {0, 0, 0}).hit,
+            "Touching permits outward, tangent and stationary requests");
+  transform.setPosition(3, 3, 0);
+  ::require(world.castShape(rectangle, transform, {-0.75f, -0.75f, 0}).fraction == 1 &&
+                world.castShape(rectangle, transform, {-0.75f, -0.75f, 0}).hit,
+            "Angled endpoint contact counts");
+  transform.setPosition(-1, 0.25f, 0);
+  ::require(!world.castShape(rectangle, transform, {1.5f, -1, 0}).hit,
+            "Isolated polygon corner graze does not block");
+  transform.setPosition(-1, -1, 0);
+  const auto corner = world.castShape(rectangle, transform, {1, 1, 0});
+  ::require(corner.hit && ::near(corner.fraction, 0.75f) && corner.contacts.size() == 2,
+            "Polygon vertex impact retains simultaneous face normals");
+  transform.setPosition(1, 1, 0);
+  const auto initial = world.castShape(rectangle, transform, {0, 0, 0});
+  ::require(initial.hit && initial.startsOverlapping && initial.fraction == 0,
+            "Stationary initial polygon penetration reported");
+  transform.setPosition(-100, 1, 0);
+  ::require(::near(world.castShape(rectangle, transform, {200, 0, 0}).fraction, 0.49875f),
+            "Fast cast cannot cross polygon unnoticed");
+  collider.setMaskBits(2);
+  CollisionFilter filter;
+  filter.categoryBits = 1;
+  ::require(!world.castShape(rectangle, transform, {200, 0, 0}, filter).hit,
+            "Polygon casts respect target masks");
+  world.clear();
+  std::cout << "PASS: angled sweeps, touching, endpoint, graze, simultaneous normals, initial overlap, speed\n";
+}
+
 }
 
 int main() {
@@ -308,6 +642,12 @@ int main() {
     ::test_touching_and_corners();
     ::test_earliest_and_simultaneous_hits();
     ::test_registration_and_validation();
+    ::test_polygon_validation_and_bounds();
+    ::test_rectangle_polygon_intersections();
+    ::test_polygon_pairs_and_containment();
+    ::test_polygon_casts();
+    ::test_many_vertex_polygon_intersections();
+    ::test_thin_polygon_casts_and_symmetry();
     std::cout << "All collision detection tests passed.\n";
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

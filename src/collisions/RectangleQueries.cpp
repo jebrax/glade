@@ -84,10 +84,10 @@ std::optional<CollisionManifold> overlap_rectangles(
   return ::make_manifold(query, obstacle, normal, -depth_y);
 }
 
-RectangleCastResult cast_rectangles(
+NarrowphaseCastResult cast_rectangles(
     const CollisionBounds &query, const Glade::Vector3f &displacement,
     const CollisionBounds &obstacle) {
-  RectangleCastResult result;
+  NarrowphaseCastResult result;
   const auto overlap = ::overlap_rectangles(query, obstacle);
 
   if (overlap && overlap->points.front().separation < 0.0f) {

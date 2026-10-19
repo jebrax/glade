@@ -14,10 +14,27 @@ world units. Geometry is centred on its transform's position. Z, rotation and
 scale are ignored, including when computing broadphase bounds. Sprite frames
 and visual scale do not affect collision dimensions.
 
+`ConvexPolygonCollisionShape` stores an immutable boundary of three or more
+local X/Y vertices. Supply boundary order in either winding; the constructor
+normalises it to counterclockwise. Vertices must be finite and form a simple,
+strictly convex polygon. Concave/self-intersecting boundaries, repeated vertices,
+zero area and redundant collinear edges throw `std::invalid_argument`. The
+constructor does not compute a convex hull or silently reshape terrain.
+The collider origin need not be the polygon's centre. Placement uses translation
+only: Z, rotation and scale are ignored just as for rectangles. Polygon bounds
+enclose the translated vertices and are rounded outward when necessary.
+
 `CollisionShape` separates geometry from placement. Its type identifies which
 narrowphase algorithms apply; adding a shape type requires implementing its
 supported overlap and cast pairs. Bounds are conservative candidate geometry,
 not a substitute for those algorithms. Rectangle bounds happen to be exact.
+All rectangle/polygon query pair directions and polygon/polygon queries support
+overlap and translation casts. Rectangle/rectangle queries retain their specialised
+implementation. Other pairs use separating axes from both boundaries, with swept
+projection intervals for casts. Interval checks use unnormalised axes; reported
+normals and penetration distances are normalised. Polygon queries generate one
+or two contact points on the encountered boundary's supporting vertex or edge.
+They preserve the existing touching and containment contracts below.
 
 `Collider` refers to an owner and a shape, and stores a relative `Transform`.
 `getWorldTransform()` uses `Transform::combine` with the owner's transform as
@@ -106,8 +123,13 @@ category and mask, excludes itself, and excludes sensors.
 Movement casts along the remaining displacement, advances with a small clearance
 along blocking normals, removes inward displacement against encountered normals,
 and casts again to slide. The representable candidate position is checked for
-penetration before committing each step. This implementation supports the current
-axis-aligned rectangle queries; arbitrary-normal slope response is not verified.
+penetration before committing each step. Movement constraints support arbitrary
+X/Y normals. In 2D the mover chooses the closest displacement satisfying all accumulated contact normals, considering
+each constraint boundary and zero displacement. This avoids a later projection
+reintroducing inward movement against an earlier, non-perpendicular surface.
+This is boundary sliding, not elevation, grounded state or ramp support.
+Independent terrain pieces have no adjacency/internal-edge suppression; seamless
+movement across arbitrary terrain decompositions is not guaranteed.
 
 `MoveResult` records the original request, actual owner displacement and contact
 snapshots encountered along the path. Contacts are not a final support query.
@@ -193,6 +215,17 @@ Mover tests cover free movement, transform preservation and bounds updates,
 wall stopping, diagonal sliding, local offsets, high-speed thin obstacles in
 both directions on both axes, simultaneous corners and successive obstacles,
 movement iteration exhaustion, explicit recovery, touching, partial recovery,
-multiple overlaps, trapping, filters and invalid inputs. No vertical-body
-collision, other shape types, event handling, input controller or application
-integration is implemented by this module.
+multiple overlaps, trapping, filters and invalid inputs.
+
+Polygon coverage additionally includes 625 rectangle/triangle placements and
+1,089 rectangle/pentagon placements checked against independent geometric
+oracles, manifold boundary points and separation vectors, winding/geometry
+validation, containment, translated owner/local offsets, sensor/mask filtering,
+rectangle/polygon queries in both directions, polygon/polygon queries, angled
+sweeps, touching, endpoint contacts, corner grazing, simultaneous normals and
+high-speed thin angled obstacles and a 32-vertex polygon. Mover coverage includes
+45-degree and non-45-degree sliding,
+repeated contact, moving away, angled recovery and an acute slope/ceiling pocket
+with reversed registration order. These are CPU tests, not rendered terrain or
+level-authoring integration. No vertical-body collision, event handling or input
+controller is implemented by this module.

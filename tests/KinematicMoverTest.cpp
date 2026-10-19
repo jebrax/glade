@@ -2,6 +2,7 @@
 #include <glade/collisions/CollisionWorld.h>
 #include <glade/collisions/KinematicMover.h>
 #include <glade/collisions/RectangleCollisionShape.h>
+#include <glade/collisions/ConvexPolygonCollisionShape.h>
 
 #include <cmath>
 #include <iostream>
@@ -311,6 +312,84 @@ void test_filters_and_invalid_inputs() {
   std::cout << "PASS: sensors, category/mask filtering, collider preconditions, invalid settings/input\n";
 }
 
+void test_polygon_sliding_and_recovery() {
+  Fixture fixture;
+  fixture.world.remove(fixture.wall);
+  ConvexPolygonCollisionShape slope({{0, 0}, {4, 0}, {0, 4}});
+  GladeObject terrain(nullptr);
+  auto &collider = terrain.setCollider(slope);
+  fixture.world.add(collider);
+  fixture.bodyObject.getTransform()->setPosition(3, 3, 0);
+  KinematicMover mover(fixture.world);
+  const auto slide = mover.move(fixture.body, {{-2, 0, 0}});
+  ::require(slide.status == MoveStatus::BLOCKED && !slide.contacts.empty() &&
+                std::abs(fixture.position().x - 1.5f) < 0.001f &&
+                std::abs(fixture.position().y - 3.5f) < 0.001f,
+            "Rectangle slides along angled polygon face with clearance");
+  fixture.requireSeparated();
+
+  for (int i = 0; i < 20; ++i) {
+    const auto repeated = mover.move(fixture.body, {{-0.01f, 0, 0}});
+    ::require(repeated.status == MoveStatus::BLOCKED, "Repeated slope requests stay constrained");
+    fixture.requireSeparated();
+  }
+
+  ::require(mover.move(fixture.body, {{1, 1, 0}}).status == MoveStatus::COMPLETED,
+            "Movement away from angled surface completes");
+  fixture.bodyObject.getTransform()->setPosition(2.25f, 2.25f, 0);
+  ::require(mover.move(fixture.body, {{1, 1, 0}}).status == MoveStatus::UNRESOLVED_OVERLAP,
+            "Polygon penetration is not silently recovered by movement");
+  const auto recovery = mover.recoverOverlap(fixture.body);
+  ::require(recovery.status == RecoveryStatus::RECOVERED &&
+                recovery.correction.x > 0.25f && recovery.correction.y > 0.25f,
+            "Overlap recovery follows angled separation normal");
+  fixture.requireSeparated();
+
+  // The slope and ceiling form an acute pocket. Projecting against the slope
+  // and then the ceiling must not reintroduce movement into the slope.
+  RectangleCollisionShape ceiling_shape(10, 0.5f);
+  GladeObject ceiling_object(nullptr);
+  auto &ceiling = ceiling_object.setCollider(ceiling_shape);
+  ceiling_object.getTransform()->setPosition(0, 4, 0);
+  fixture.world.add(ceiling);
+
+  for (int order = 0; order < 2; ++order) {
+    fixture.bodyObject.getTransform()->setPosition(3, 3, 0);
+    const auto pocket = mover.move(fixture.body, {{-4, 0, 0}});
+    ::require(pocket.status == MoveStatus::BLOCKED &&
+                  std::abs(fixture.position().x - 2) < 0.001f &&
+                  fixture.position().y <= 3,
+              "Non-orthogonal constraints stop safely without iteration exhaustion");
+    fixture.requireSeparated();
+    fixture.world.remove(collider);
+    fixture.world.add(collider);
+  }
+
+  fixture.world.remove(ceiling);
+  fixture.world.remove(collider);
+  terrain.clearCollider();
+  ConvexPolygonCollisionShape unequal_slope({{0, 0}, {3, 0}, {1, 3}});
+  auto &unequal_collider = terrain.setCollider(unequal_slope);
+  fixture.world.add(unequal_collider);
+  fixture.bodyObject.getTransform()->setPosition(5, 1, 0);
+  const auto unequal_slide = mover.move(fixture.body, {{-4, 0, 0}});
+  ::require(unequal_slide.status == MoveStatus::BLOCKED &&
+                std::abs(fixture.position().x - 2.5f) < 0.001f &&
+                std::abs(fixture.position().y - 2) < 0.001f,
+            "Non-45-degree slope preserves the permitted tangent displacement");
+  fixture.requireSeparated();
+
+  for (int i = 0; i < 20; ++i) {
+    ::require(mover.move(fixture.body, {{-0.01f, 0, 0}}).status == MoveStatus::BLOCKED,
+              "Repeated non-45-degree sliding makes safe progress");
+    fixture.requireSeparated();
+  }
+
+  fixture.world.remove(unequal_collider);
+  terrain.clearCollider();
+  std::cout << "PASS: angled sliding, repeated contact, departure, recovery, acute pocket and ordering\n";
+}
+
 }
 
 int main() {
@@ -322,6 +401,7 @@ int main() {
     ::test_overlap_recovery();
     ::test_multiple_overlaps_and_trapping();
     ::test_filters_and_invalid_inputs();
+    ::test_polygon_sliding_and_recovery();
     std::cout << "All kinematic mover tests passed.\n";
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';
