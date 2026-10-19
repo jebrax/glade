@@ -5,9 +5,11 @@
 
 #include "render/GladeRenderer.h"
 #include "State.h"
+#include "GladeObject.h"
 #include "ui/layout/Layout.h"
 #include "controls/VirtualController.h"
 #include "physics/CollisionDetector.h"
+#include "collisions/CollisionWorld.h"
 #include "ai/AiContainer.h"
 #include "Timer.h"
 #include "debug/log.h"
@@ -20,6 +22,7 @@ public:
   Glade::Renderer *renderer;
 
   CollisionDetector *collisionDetector;
+  CollisionWorld collisionWorld;
   Glade::EventBus eventBus;
   AiContainer aiContainer;
   Glade::NetworkManager *networkManager;
@@ -56,6 +59,7 @@ public:
   void add(GladeObject *object, bool replicate = false) { objectsToAdd.emplace(object, replicate); }
   void remove(GladeObject *object) { objectsToRemove.push(object); }
   CollisionDetector *getCollisionDetector(void) { return collisionDetector; }
+  CollisionWorld *getCollisionWorld() { return &collisionWorld; }
   AiContainer *getAiContainer(void) { return &aiContainer; }
 
   /**
@@ -167,6 +171,10 @@ private:
   void removeNow(GladeObject *object) {
     renderer->remove(object);
     collisionDetector->remove(object);
+
+    if (auto *collider = object->getCollider()) {
+      collisionWorld.remove(*collider);
+    }
   }
 
   /**
@@ -176,6 +184,10 @@ private:
     ::log("Adding now");
     renderer->add(entry.first);
     collisionDetector->add(entry.first);
+
+    if (auto *collider = entry.first->getCollider()) {
+      collisionWorld.add(*collider);
+    }
 
     if (entry.second) {
       ::log("With replication");
@@ -191,6 +203,7 @@ private:
 
     renderer->clear();
     collisionDetector->clear();
+    collisionWorld.clear();
     aiContainer.clear();
 
     clearRequested = false;

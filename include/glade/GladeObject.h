@@ -4,7 +4,9 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <optional>
 
+#include <glade/collisions/Collider.h>
 #include <glade/math/Transform.h>
 #include <glade/debug/log.h>
 #include <glade/io/Stream.h>
@@ -33,6 +35,7 @@ public:
 protected:
   bool enabled;
   PhysicalObject *physicalObject;
+  std::optional<Collider> collider;
   Behavior *behavior;
   Drawables drawables;
   std::map<Drawable *, bool> visibilitySwitches;
@@ -58,6 +61,17 @@ public:
   virtual Drawables *getDrawables(void);
   virtual void setPhysicalObject(PhysicalObject &physical_object);
   virtual PhysicalObject *getPhysicalObject();
+
+  // Shape must outlive this collider. Remove the existing collider from its
+  // CollisionWorld before replacing or clearing it, or destroying this object.
+  Collider &setCollider(const CollisionShape &shape, Collider::Type type = Collider::Type::STATIC);
+
+  Collider *getCollider();
+
+  const Collider *getCollider() const;
+
+  void clearCollider();
+
   virtual void toggleView(Drawable &view, bool enable);
   virtual void toggleView(bool enable);
   virtual void toggleBehavior(bool enable);

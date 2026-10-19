@@ -20,6 +20,14 @@ if(TARGET glade AND TARGET glfw)
 endif()
 
 if(TARGET glade)
+    add_executable(glade_collision_test CollisionTest.cpp)
+    target_compile_features(glade_collision_test PRIVATE cxx_std_20)
+    target_link_libraries(glade_collision_test PRIVATE glade)
+
+    add_executable(glade_kinematic_mover_test KinematicMoverTest.cpp)
+    target_compile_features(glade_kinematic_mover_test PRIVATE cxx_std_20)
+    target_link_libraries(glade_kinematic_mover_test PRIVATE glade)
+
     add_executable(glade_atlas_reader_test GladeTexAtlasReaderTest.cpp)
     target_compile_features(glade_atlas_reader_test PRIVATE cxx_std_20)
     target_link_libraries(glade_atlas_reader_test PRIVATE glade)

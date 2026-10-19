@@ -68,6 +68,22 @@ void GladeObject::setPhysicalObject(PhysicalObject &physical_object) {
 
 PhysicalObject *GladeObject::getPhysicalObject() { return physicalObject; }
 
+Collider &GladeObject::setCollider(const CollisionShape &shape, Collider::Type type) {
+  return collider.emplace(*this, shape, type);
+}
+
+Collider *GladeObject::getCollider() {
+  return collider ? &*collider : nullptr;
+}
+
+const Collider *GladeObject::getCollider() const {
+  return collider ? &*collider : nullptr;
+}
+
+void GladeObject::clearCollider() {
+  collider.reset();
+}
+
 void GladeObject::toggleView(Drawable &view, bool enable) {
   std::map<Drawable *, bool>::iterator i = visibilitySwitches.find(&view);
 

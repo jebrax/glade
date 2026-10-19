@@ -6,13 +6,35 @@ ifndef GLADE_BUILD_DIR
 GLADE_BUILD_DIR=build/glade
 endif
 
-.PHONY: clean ass
+.PHONY: clean ass collision-test kinematic-mover-test
 
 CXX_SRCS = $(shell find src -type f -name '*.cpp')
 OBJS = $(patsubst src/%.cpp, $(GLADE_BUILD_DIR)/%.o, $(CXX_SRCS))
 DEPS = $(patsubst src/%.cpp, $(GLADE_BUILD_DIR)/%.o.d, $(CXX_SRCS))
 
 all: ass ${GLADE_BUILD_DIR}/libglade.a
+
+# CPU-only detection test using the real engine sources, without GL or vendor libraries.
+COLLISION_TEST_SRCS = tests/CollisionTest.cpp src/GladeObject.cpp src/debug/log.cpp src/io/Stream.cpp \
+                     $(wildcard src/collisions/*.cpp)
+COLLISION_TEST_HEADERS = $(wildcard include/glade/collisions/*.h src/collisions/*.h) \
+                        include/glade/GladeObject.h $(wildcard include/glade/math/*.h)
+
+collision-test: ${GLADE_BUILD_DIR}/collision-test
+	${GLADE_BUILD_DIR}/collision-test
+
+${GLADE_BUILD_DIR}/collision-test: ${COLLISION_TEST_SRCS} ${COLLISION_TEST_HEADERS}
+	mkdir -p $(@D)
+	${CXX} -std=c++20 -O0 -g -Iinclude ${COLLISION_TEST_SRCS} -o $@
+
+KINEMATIC_TEST_SRCS = tests/KinematicMoverTest.cpp $(filter-out tests/CollisionTest.cpp,${COLLISION_TEST_SRCS})
+
+kinematic-mover-test: ${GLADE_BUILD_DIR}/kinematic-mover-test
+	${GLADE_BUILD_DIR}/kinematic-mover-test
+
+${GLADE_BUILD_DIR}/kinematic-mover-test: ${KINEMATIC_TEST_SRCS} ${COLLISION_TEST_HEADERS}
+	mkdir -p $(@D)
+	${CXX} -std=c++20 -O0 -g -Iinclude ${KINEMATIC_TEST_SRCS} -o $@
 
 ###################### Linkage
 ${GLADE_BUILD_DIR}/libglade.a: build/lodepng/lodepng.o
