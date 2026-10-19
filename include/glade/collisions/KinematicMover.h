@@ -46,6 +46,9 @@ struct KinematicMoverSettings {
   unsigned int maxRecoveryIterations = 8;
   // Bounds total distance travelled during one recovery call, not net offset.
   float maxRecoveryDistance = 1.0f;
+  // Acute angle between the original X/Y request and a blocking face's tangent.
+  // Inclusive [0, 90]; 90 preserves unrestricted collision sliding.
+  float maxSlideAngleDegrees = 90.0f;
 };
 
 // Synchronous X/Y movement. World and registered colliders must remain valid.
@@ -63,4 +66,5 @@ public:
 private:
   CollisionWorld &world;
   KinematicMoverSettings settings;
+  double maxSlideNormalRatioSquared;
 };

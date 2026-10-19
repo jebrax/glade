@@ -390,6 +390,174 @@ void test_polygon_sliding_and_recovery() {
   std::cout << "PASS: angled sliding, repeated contact, departure, recovery, acute pocket and ordering\n";
 }
 
+void test_slide_angle_limit() {
+  RectangleCollisionShape body_shape(0.05f, 0.05f);
+  KinematicMoverSettings settings;
+  settings.maxSlideAngleDegrees = 45.0f;
+
+  for (float height : {0.999f, 1.0f, 1.001f}) {
+    ConvexPolygonCollisionShape slope({{0, 0}, {2, 0}, {1, height}});
+    GladeObject actor(nullptr), terrain(nullptr);
+    auto &body = actor.setCollider(body_shape, Collider::Type::KINEMATIC);
+    auto &solid = terrain.setCollider(slope);
+    actor.getTransform()->setPosition(-0.5f, 0.2f, 0);
+    CollisionWorld world;
+    world.add(body);
+    world.add(solid);
+    KinematicMover mover(world, settings);
+    const auto result = mover.move(body, {{1, 0, 0}});
+    ::require(result.status == MoveStatus::BLOCKED, "Both sliding and stopping report BLOCKED");
+    ::require(height <= 1 ? result.actualDisplacement.y > 0 : result.actualDisplacement.y == 0,
+              "Slide below/at 45 degrees; stop above 45 degrees");
+
+    for (int frame = 0; frame < 100; ++frame) {
+      const auto repeated = mover.move(body, {{0.002f, 0, 0}});
+      ::require(repeated.status == MoveStatus::BLOCKED, "Repeated contact remains constrained");
+      ::require(height <= 1 ? repeated.actualDisplacement.y > 0 :
+                              repeated.actualDisplacement.y == 0,
+                "Angle decision stays consistent across repeated requests");
+    }
+
+    world.clear();
+  }
+
+  ConvexPolygonCollisionShape steep({{0, 0}, {2, 0}, {1, 2}});
+  GladeObject actor(nullptr), terrain(nullptr);
+  auto &body = actor.setCollider(body_shape, Collider::Type::KINEMATIC);
+  auto &solid = terrain.setCollider(steep);
+  CollisionWorld world;
+  world.add(body);
+  world.add(solid);
+  actor.getTransform()->setPosition(-0.25f, 0.25f, 0);
+  KinematicMover mover(world, settings);
+  const auto diagonal = mover.move(body, {{1, 1, 0}});
+  ::require(diagonal.status == MoveStatus::BLOCKED &&
+                diagonal.actualDisplacement.y > diagonal.actualDisplacement.x,
+            "Steep face permits sliding when original diagonal input is within 45 degrees");
+  ::require(mover.move(body, {{-0.5f, 0, 0}}).status == MoveStatus::COMPLETED,
+            "Angle restriction does not block movement away from terrain");
+  actor.getTransform()->setPosition(-0.5f, 0.2f, 0);
+  KinematicMover unrestricted(world);
+  ::require(unrestricted.move(body, {{1, 0, 0}}).actualDisplacement.y > 0,
+            "Default 90-degree setting preserves unrestricted sliding");
+  settings.maxSlideAngleDegrees = 0;
+  KinematicMover no_deflection(world, settings);
+  actor.getTransform()->setPosition(-0.5f, 0.2f, 0);
+  ::require(no_deflection.move(body, {{1, 0, 0}}).actualDisplacement.y == 0,
+            "Zero-degree setting stops inward deflection");
+
+  for (float invalid_angle : {-1.0f, 90.001f, std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::quiet_NaN()}) {
+    settings.maxSlideAngleDegrees = invalid_angle;
+    ::rejects([&] { KinematicMover invalid(world, settings); });
+  }
+
+  world.clear();
+  std::cout << "PASS: slide limits below/at/above 45, diagonal input, departure, defaults, validation\n";
+}
+
+void test_original_direction_at_successive_slopes() {
+  RectangleCollisionShape body_shape(0.05f, 0.05f);
+  ConvexPolygonCollisionShape shallow({{0, 0}, {4, 0}, {4, 2}});
+  ConvexPolygonCollisionShape steep({{1, 0}, {4, 0}, {3, 4}});
+  GladeObject actor(nullptr), first(nullptr), second(nullptr);
+  auto &body = actor.setCollider(body_shape, Collider::Type::KINEMATIC);
+  auto &first_collider = first.setCollider(shallow);
+  auto &second_collider = second.setCollider(steep);
+  actor.getTransform()->setPosition(-0.25f, 0.5f, 0);
+  CollisionWorld world;
+  world.add(body);
+  world.add(first_collider);
+  world.add(second_collider);
+  KinematicMoverSettings settings;
+  settings.maxSlideAngleDegrees = 45;
+  KinematicMover mover(world, settings);
+  const auto result = mover.move(body, {{3, 0, 0}});
+  ::require(result.status == MoveStatus::BLOCKED && result.actualDisplacement.y > 0 &&
+                actor.getTransform()->position->x < 1.5f && result.contacts.size() >= 2,
+            "Second face is classified against original input, not the first slide direction");
+  world.clear();
+  std::cout << "PASS: original intended direction retained across successive slope contacts\n";
+}
+
+void test_sub_ulp_advance_regression() {
+  RectangleCollisionShape body_shape(0.12f, 0.06f);
+  ConvexPolygonCollisionShape slope({{0.25f, 0.4f}, {-0.5f, -0.4f}, {0.5f, -0.4f}});
+  GladeObject actor(nullptr), terrain(nullptr);
+  auto &body = actor.setCollider(body_shape, Collider::Type::KINEMATIC);
+  auto &solid = terrain.setCollider(slope);
+  terrain.getTransform()->setPosition(0.8f, 0, -1);
+  CollisionWorld world;
+  world.add(body);
+  world.add(solid);
+  CollisionFilter filter;
+  filter.ignoredCollider = &body;
+  KinematicMover mover(world);
+
+  for (float step : {0.001f, 0.004f, 0.008f, 0.01f, 0.016f, 1.0f / 60, 0.02f, 0.05f, 0.1f}) {
+    actor.getTransform()->setPosition(0, 0, -1);
+
+    for (int frame = 0; frame < 5000 && actor.getTransform()->position->x < 1.5f; ++frame) {
+      const auto result = mover.move(body, {{step, 0, 0}});
+      ::require((result.status == MoveStatus::COMPLETED || result.status == MoveStatus::BLOCKED) &&
+                    result.actualDisplacement.x > 0,
+                "Tiny pre-contact advance must not prevent the remaining slope slide");
+      Transform transform;
+      body.getWorldTransform(transform);
+      const auto overlaps = world.queryOverlaps(body_shape, transform, filter);
+
+      for (const auto &overlap : overlaps) {
+        ::require(overlap.manifold.points.front().separation >= 0,
+                  "Continued sliding must preserve penetration checks");
+      }
+    }
+
+    ::require(actor.getTransform()->position->x >= 1.5f,
+              "Constant rightward movement traverses and leaves the slope");
+  }
+
+  for (unsigned int seed = 1; seed <= 8; ++seed) {
+    unsigned int random = seed;
+    actor.getTransform()->setPosition(0, 0, -1);
+
+    for (int frame = 0; frame < 500 && actor.getTransform()->position->x < 1.5f; ++frame) {
+      random = random * 1664525u + 1013904223u;
+      const float step = 0.012f + (random % 8001) * 0.000001f;
+      const auto result = mover.move(body, {{step, 0, 0}});
+      ::require((result.status == MoveStatus::COMPLETED || result.status == MoveStatus::BLOCKED) &&
+                    result.actualDisplacement.x > 0,
+                "Variable steps must not stall after several successful slide frames");
+    }
+
+    ::require(actor.getTransform()->position->x >= 1.5f, "Variable rightward movement leaves the slope");
+  }
+
+  KinematicMoverSettings settings;
+  settings.maxSlideAngleDegrees = 45;
+  KinematicMover limited(world, settings);
+  actor.getTransform()->setPosition(0, 0, -1);
+  const auto stop = limited.move(body, {{10, 0, 0}});
+  ::require(stop.status == MoveStatus::BLOCKED && stop.actualDisplacement.y == 0 &&
+                ::near(actor.getTransform()->position->x, 0.4986129f),
+            "Axel's actual 46.8-degree terrain stops horizontal movement at safe contact");
+
+  for (int frame = 0; frame < 100; ++frame) {
+    const auto result = limited.move(body, {{1.0f / 60, 0, 0}});
+    ::require(result.status == MoveStatus::BLOCKED && result.actualDisplacement.y == 0 &&
+                  std::abs(actor.getTransform()->position->x - 0.4986129f) < 0.00001f,
+              "Repeated horizontal input stops consistently without spurious iteration limits");
+  }
+
+  // A completely unrepresentable free move still returns immediately as before.
+  actor.getTransform()->setPosition(100, 100, -1);
+  const auto tiny_free = mover.move(body, {{1.0e-10f, 0, 0}});
+  ::require(tiny_free.status == MoveStatus::ITERATION_LIMIT &&
+                tiny_free.actualDisplacement.x == 0 && tiny_free.actualDisplacement.y == 0,
+            "No-progress guard remains effective for an unrepresentable free move");
+  world.clear();
+  std::cout << "PASS: 9 constant and 8 variable slope regressions, safe stopping, free no-progress guard\n";
+}
+
 }
 
 int main() {
@@ -402,6 +570,9 @@ int main() {
     ::test_multiple_overlaps_and_trapping();
     ::test_filters_and_invalid_inputs();
     ::test_polygon_sliding_and_recovery();
+    ::test_slide_angle_limit();
+    ::test_original_direction_at_successive_slopes();
+    ::test_sub_ulp_advance_regression();
     std::cout << "All kinematic mover tests passed.\n";
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

@@ -128,6 +128,24 @@ X/Y normals. In 2D the mover chooses the closest displacement satisfying all acc
 each constraint boundary and zero displacement. This avoids a later projection
 reintroducing inward movement against an earlier, non-perpendicular surface.
 This is boundary sliding, not elevation, grounded state or ramp support.
+`KinematicMoverSettings::maxSlideAngleDegrees` limits sliding by the acute angle
+between the original requested X/Y direction and each blocking surface's tangent.
+The limit is inclusive, finite and in [0, 90] degrees; the default 90 preserves
+unrestricted sliding. Above the limit the mover advances to safe contact and
+stops the rest of the request with `BLOCKED`. At or below it the mover applies
+its usual constraints and recasts. Both stopping and sliding can report `BLOCKED`.
+The original direction remains the reference across successive contacts in one
+move call. This is relative to input direction, not a fixed world-horizontal
+incline or elevation rule. Zero requests and outward/tangential movement retain
+the normal query behaviour. The angle comparison uses squared dot products;
+only double-precision comparison roundoff is allowed at the inclusive boundary.
+
+An advance too small to change the float owner position returns immediately
+without overlap queries. For the pre-contact step this is treated as zero advance
+and sliding may continue, rather than abandoning a valid tangential displacement.
+Penetrating candidate advances remain rejected; a free movement that cannot
+change the representable position still reports `ITERATION_LIMIT`.
+
 Independent terrain pieces have no adjacency/internal-edge suppression; seamless
 movement across arbitrary terrain decompositions is not guaranteed.
 
@@ -226,6 +244,10 @@ sweeps, touching, endpoint contacts, corner grazing, simultaneous normals and
 high-speed thin angled obstacles and a 32-vertex polygon. Mover coverage includes
 45-degree and non-45-degree sliding,
 repeated contact, moving away, angled recovery and an acute slope/ceiling pocket
-with reversed registration order. These are CPU tests, not rendered terrain or
+with reversed registration order. Additional regressions cover limits just below,
+exactly at and just above 45 degrees, original direction across successive faces,
+diagonal input, defaults and invalid angles, nine constant and eight varied
+rightward step sequences matching the prototype triangle, consistent 45-degree
+stopping and the retained free-movement no-progress guard. These are CPU tests, not rendered terrain or
 level-authoring integration. No vertical-body collision, event handling or input
 controller is implemented by this module.

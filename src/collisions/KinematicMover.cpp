@@ -68,12 +68,18 @@ Glade::Vector3f displaced_position(const Collider &collider, const Glade::Vector
   return next;
 }
 
-bool advance_if_clear(CollisionWorld &world, Collider &collider, const CollisionFilter &filter,
-                      const Glade::Vector3f &step) {
+enum class AdvanceResult {
+  MOVED,
+  NO_CHANGE,
+  PENETRATING
+};
+
+AdvanceResult advance_if_clear(CollisionWorld &world, Collider &collider,
+                               const CollisionFilter &filter, const Glade::Vector3f &step) {
   const auto next = ::displaced_position(collider, step);
   auto &position = *collider.getOwner().getTransform()->position;
 
-  if (next.x == position.x && next.y == position.y) return false;
+  if (next.x == position.x && next.y == position.y) return AdvanceResult::NO_CHANGE;
 
   // Check the position the owner can actually represent, including its local
   // collider offset. Do not commit a rounded cast endpoint inside geometry.
@@ -82,12 +88,26 @@ bool advance_if_clear(CollisionWorld &world, Collider &collider, const Collision
   candidate.position->x = next.x + collider.getTransform()->position->x;
   candidate.position->y = next.y + collider.getTransform()->position->y;
 
-  if (!::penetrating_contacts(world, collider, candidate, filter).empty()) return false;
+  if (!::penetrating_contacts(world, collider, candidate, filter).empty()) {
+    return AdvanceResult::PENETRATING;
+  }
 
   position.set(next);
   world.update(collider);
 
-  return true;
+  return AdvanceResult::MOVED;
+}
+
+bool permits_sliding(const Glade::Vector3f &intended, const Glade::Vector3f &normal,
+                     double normal_ratio_squared) {
+  const double into = double(intended.x) * normal.x + double(intended.y) * normal.y;
+  const double movement_squared = double(intended.x) * intended.x + double(intended.y) * intended.y;
+  const double normal_squared = double(normal.x) * normal.x + double(normal.y) * normal.y;
+  const double scale = movement_squared * normal_squared;
+  const double roundoff = 64.0 * std::numeric_limits<double>::epsilon() * scale;
+
+  // sin(angle to tangent) = abs(dot(direction, normal)) / (|direction| |normal|).
+  return into * into <= normal_ratio_squared * scale + roundoff;
 }
 
 Glade::Vector3f constrain_movement(const Glade::Vector3f &movement,
@@ -141,9 +161,14 @@ KinematicMover::KinematicMover(CollisionWorld &world_, const KinematicMoverSetti
     : world(world_), settings(settings_) {
   if (!std::isfinite(settings.contactTolerance) || settings.contactTolerance <= 0.0f ||
       settings.maxMoveIterations == 0 || settings.maxRecoveryIterations == 0 ||
-      !std::isfinite(settings.maxRecoveryDistance) || settings.maxRecoveryDistance < 0.0f) {
+      !std::isfinite(settings.maxRecoveryDistance) || settings.maxRecoveryDistance < 0.0f ||
+      !std::isfinite(settings.maxSlideAngleDegrees) || settings.maxSlideAngleDegrees < 0.0f ||
+      settings.maxSlideAngleDegrees > 90.0f) {
     throw std::invalid_argument("Invalid kinematic mover settings");
   }
+
+  const double sine = std::sin(double(settings.maxSlideAngleDegrees) * std::acos(-1.0) / 180.0);
+  maxSlideNormalRatioSquared = sine * sine;
 }
 
 MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) {
@@ -183,7 +208,7 @@ MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) 
     }
 
     if (!hit.hit) {
-      result.status = ::advance_if_clear(world, collider, filter, remaining)
+      result.status = ::advance_if_clear(world, collider, filter, remaining) == AdvanceResult::MOVED
                           ? (blocked ? MoveStatus::BLOCKED : MoveStatus::COMPLETED)
                           : MoveStatus::ITERATION_LIMIT;
       remaining.setIdentity();
@@ -193,6 +218,7 @@ MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) 
     blocked = true;
     result.contacts.insert(result.contacts.end(), hit.contacts.begin(), hit.contacts.end());
     double backoff = 0.0;
+    bool allow_sliding = true;
 
     for (const auto &contact : hit.contacts) {
       const auto &normal = contact.manifold.normal;
@@ -203,14 +229,27 @@ MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) 
       }
 
       normals.push_back(normal);
+      allow_sliding = allow_sliding && ::permits_sliding(
+          request.displacement, normal, maxSlideNormalRatioSquared);
     }
 
-    const float fraction = float(std::max(0.0, double(hit.fraction) - backoff));
+    float fraction = float(std::max(0.0, double(hit.fraction) - backoff));
     const Glade::Vector3f step(remaining.x * fraction, remaining.y * fraction, 0.0f);
 
-    if ((step.x != 0.0f || step.y != 0.0f) &&
-        !::advance_if_clear(world, collider, filter, step)) {
+    const auto advance = ::advance_if_clear(world, collider, filter, step);
+
+    if (advance == AdvanceResult::PENETRATING) {
       result.status = MoveStatus::ITERATION_LIMIT;
+      break;
+    }
+
+    // A sub-ULP pre-contact advance is already at the safe representable
+    // position. Keep the fast no-change return, but still attempt sliding.
+    if (advance == AdvanceResult::NO_CHANGE) fraction = 0.0f;
+
+    if (!allow_sliding) {
+      result.status = MoveStatus::BLOCKED;
+      remaining.setIdentity();
       break;
     }
 
