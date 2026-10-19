@@ -20,6 +20,14 @@ if(TARGET glade AND TARGET glfw)
 endif()
 
 if(TARGET glade)
+    add_executable(glade_elevated_movement_test ElevatedMovementTest.cpp)
+    target_compile_features(glade_elevated_movement_test PRIVATE cxx_std_20)
+    target_link_libraries(glade_elevated_movement_test PRIVATE glade)
+
+    add_executable(glade_elevated_object_test ElevatedObjectTest.cpp)
+    target_compile_features(glade_elevated_object_test PRIVATE cxx_std_20)
+    target_link_libraries(glade_elevated_object_test PRIVATE glade)
+
     add_executable(glade_collision_test CollisionTest.cpp)
     target_compile_features(glade_collision_test PRIVATE cxx_std_20)
     target_link_libraries(glade_collision_test PRIVATE glade)

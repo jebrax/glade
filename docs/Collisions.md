@@ -115,8 +115,10 @@ The mover refreshes its collider's bounds at entry and after position changes;
 callers remain responsible for updating any other changed colliders first.
 
 `move(collider, request)` consumes a displacement in world units, without an
-input device, timer, velocity, gravity or movement-mode dependency. Only X/Y
-are applied. Z is ignored and preserved on the owner. The local collider
+input device, timer, velocity, gravity or movement-mode dependency. X/Y are
+applied to the owner's ground position. For an ElevatedObject owner, the separate
+`elevationDisplacement` requests elevation movement; render Z is ignored and
+preserved on the owner. The local collider
 transform, rotation and scale are preserved. Filtering comes from the collider's
 category and mask, excludes itself, and excludes sensors.
 
@@ -127,7 +129,7 @@ penetration before committing each step. Movement constraints support arbitrary
 X/Y normals. In 2D the mover chooses the closest displacement satisfying all accumulated contact normals, considering
 each constraint boundary and zero displacement. This avoids a later projection
 reintroducing inward movement against an earlier, non-perpendicular surface.
-This is boundary sliding, not elevation, grounded state or ramp support.
+This sliding rule concerns X/Y boundaries; elevation and support are handled separately below.
 `KinematicMoverSettings::maxSlideAngleDegrees` limits sliding by the acute angle
 between the original requested X/Y direction and each blocking surface's tangent.
 The limit is inclusive, finite and in [0, 90] degrees; the default 90 preserves
@@ -149,12 +151,13 @@ change the representable position still reports `ITERATION_LIMIT`.
 Independent terrain pieces have no adjacency/internal-edge suppression; seamless
 movement across arbitrary terrain decompositions is not guaranteed.
 
-`MoveResult` records the original request, actual owner displacement and contact
-snapshots encountered along the path. Contacts are not a final support query.
+`MoveResult` records the original request, actual ground displacement, requested
+and actual elevation displacement, and X/Y contact snapshots encountered along
+the path. Contacts do not include vertical contacts and are not a final support query.
 Statuses distinguish:
 
-- `COMPLETED`: the supported X/Y movement completed without blocking.
-- `BLOCKED`: contacts normally constrained some requested movement.
+- `COMPLETED`: the requested movement completed without blocking.
+- `BLOCKED`: collision or the reference-floor constraint limited requested movement.
 - `UNRESOLVED_OVERLAP`: penetration was detected. Initial penetration leaves
   the position unchanged; movement never invokes recovery automatically.
 - `ITERATION_LIMIT`: the movement budget was exhausted or safe representable
@@ -179,6 +182,37 @@ eight movement iterations, eight recovery iterations and one world unit of
 recovery travel. These values need validation against the eventual game's world
 scale. The caller supplies timestep-consistent displacement; this class does not
 introduce a simulation timestep or alter the application lifecycle.
+
+## Elevated objects: solid tops and supporting surfaces
+
+`ElevatedObject::hasSupportingSurface()` determines whether its top can establish
+`isGrounded()` on another object. It does **not** disable the object's solid
+volume or make its top pass-through. ElevatedBox enables this flag; it defaults
+to false on ElevatedObject.
+
+The current behaviour is intentionally retained: when a body descends through
+the top elevation of a static object with positive height and positive footprint
+overlap, the mover clamps its feet to that top even if the object's supporting-
+surface flag is false. With no other supporting surface or reference floor at
+that elevation, the body remains **not grounded**. Repeated downward requests
+remain blocked; the body cannot fall through the solid volume.
+
+For example, an object at elevation zero with height `0.30` and no supporting
+surface stops a descending Axel at elevation `0.30`, but Axel's `isGrounded()`
+remains false. The same object with support enabled also stops him at `0.30`
+and establishes grounded state. Support requires positive footprint overlap;
+merely touching the footprint boundary does not supply support.
+
+This distinction between blocked descent and grounded support is a current
+design choice. It does not yet model a pass-through top or special non-walkable
+surface response. Those would require explicit collision rules rather than
+changing the supporting-surface flag alone.
+
+Elevated movement resolves ascent, X/Y movement, then descent at the resolved
+ground footprint. Grounded state is refreshed after movement, including zero
+requests. The reference floor remains elevation zero; leaving a raised top
+removes support without adding gravity. See [ElevatedObject.md](ElevatedObject.md)
+for the full elevation, height and state contract.
 
 ## Example
 

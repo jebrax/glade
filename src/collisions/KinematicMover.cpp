@@ -2,6 +2,7 @@
 #include <glade/collisions/Collider.h>
 #include <glade/collisions/CollisionWorld.h>
 #include <glade/GladeObject.h>
+#include <glade/ElevatedObject.h>
 
 #include <algorithm>
 #include <cmath>
@@ -10,11 +11,32 @@
 
 namespace {
 
-CollisionFilter mover_filter(const Collider &collider) {
+bool vertical_overlap(const ElevatedObject &body, const Collider &candidate) {
+  const auto *obstacle = dynamic_cast<const ElevatedObject *>(&candidate.getOwner());
+  if (!obstacle) return true; // Preserve legacy X/Y-only obstacles.
+
+  // Zero-height non-support terrain has an unmodelled vertical extent and
+  // remains a wall. A zero-height supporting surface has no side volume.
+  if (obstacle->getHeight() == 0.0f) return !obstacle->hasSupportingSurface();
+  if (body.getElevation() >= obstacle->getTopElevation()) return false;
+
+  return body.getHeight() == 0.0f
+      ? body.getElevation() >= obstacle->getElevation()
+      : body.getTopElevation() > obstacle->getElevation();
+}
+
+CollisionFilter mover_filter(const Collider &collider, bool constrain_elevation = true) {
   CollisionFilter filter;
   filter.categoryBits = collider.getCategoryBits();
   filter.maskBits = collider.getMaskBits();
   filter.ignoredCollider = &collider;
+  const auto *body = dynamic_cast<const ElevatedObject *>(&collider.getOwner());
+
+  if (body && constrain_elevation) {
+    filter.predicate = [body](const Collider &candidate) {
+      return ::vertical_overlap(*body, candidate);
+    };
+  }
 
   return filter;
 }
@@ -55,6 +77,46 @@ std::vector<OverlapResult> penetrating_contacts(const CollisionWorld &world,
   collider.getWorldTransform(transform);
 
   return ::penetrating_contacts(world, collider, transform, filter);
+}
+
+// These are ground-plane overlaps with positive area, deliberately independent
+// of the current elevation filter. Touching an edge alone does not supply support.
+std::vector<OverlapResult> footprint_overlaps(const CollisionWorld &world, const Collider &collider) {
+  return ::penetrating_contacts(world, collider, ::mover_filter(collider, false));
+}
+
+float constrain_elevation(const CollisionWorld &world, const Collider &collider,
+                          const ElevatedObject &body, float target) {
+  float permitted = target;
+  const float start = body.getElevation();
+
+  for (const auto &overlap : ::footprint_overlaps(world, collider)) {
+    const auto *obstacle = dynamic_cast<const ElevatedObject *>(&overlap.collider->getOwner());
+    if (!obstacle) continue;
+    if (obstacle->getHeight() == 0.0f && !obstacle->hasSupportingSurface()) continue;
+
+    const float top = obstacle->getTopElevation();
+
+    if (target < start && start >= top && target < top) {
+      // Solid tops block descent; only opted-in tops establish grounded state.
+      permitted = std::max(permitted, top);
+    } else if (target > start && obstacle->getHeight() > 0.0f &&
+               body.getTopElevation() <= obstacle->getElevation() &&
+               target + body.getHeight() > obstacle->getElevation()) {
+      float ceiling = obstacle->getElevation() - body.getHeight();
+
+      // A height-zero body is a point: at the bottom boundary it would count
+      // as inside the volume for side queries. Keep it just below that plane.
+      if ((body.getHeight() == 0.0f && ceiling >= obstacle->getElevation()) ||
+          ceiling + body.getHeight() > obstacle->getElevation()) {
+        ceiling = std::nextafter(ceiling, -std::numeric_limits<float>::infinity());
+      }
+
+      permitted = std::min(permitted, std::max(start, ceiling));
+    }
+  }
+
+  return permitted;
 }
 
 Glade::Vector3f displaced_position(const Collider &collider, const Glade::Vector3f &step) {
@@ -171,7 +233,90 @@ KinematicMover::KinematicMover(CollisionWorld &world_, const KinematicMoverSetti
   maxSlideNormalRatioSquared = sine * sine;
 }
 
+void KinematicMover::refreshGrounded(Collider &collider) {
+  auto *body = dynamic_cast<ElevatedObject *>(&collider.getOwner());
+  if (!body) return;
+
+  bool grounded = body->getElevation() == 0.0f;
+
+  for (const auto &overlap : ::footprint_overlaps(world, collider)) {
+    const auto *surface = dynamic_cast<const ElevatedObject *>(&overlap.collider->getOwner());
+
+    if (surface && surface->hasSupportingSurface() &&
+        body->getElevation() == surface->getTopElevation()) {
+      grounded = true;
+      break;
+    }
+  }
+
+  body->setGrounded(grounded);
+}
+
 MoveResult KinematicMover::move(Collider &collider, const MoveRequest &request) {
+  ::validate_collider(collider);
+  auto *body = dynamic_cast<ElevatedObject *>(&collider.getOwner());
+
+  if (!std::isfinite(request.displacement.x) || !std::isfinite(request.displacement.y) ||
+      !std::isfinite(request.elevationDisplacement) || (!body && request.elevationDisplacement != 0.0f)) {
+    throw std::invalid_argument("Finite movement and an elevated owner for elevation motion are required");
+  }
+
+  if (!body) return moveGround(collider, request);
+
+  const float start = body->getElevation();
+  const double requested = double(start) + request.elevationDisplacement;
+  const double nonnegative = std::max(0.0, requested);
+
+  if (nonnegative + body->getHeight() > double(std::numeric_limits<float>::max())) {
+    throw std::invalid_argument("Kinematic movement would exceed finite elevation coordinates");
+  }
+
+  const float target = float(nonnegative);
+
+  if (!std::isfinite(target) || !std::isfinite(target + body->getHeight())) {
+    throw std::invalid_argument("Kinematic movement would exceed finite elevation coordinates");
+  }
+
+  world.update(collider);
+  const auto initial = ::penetrating_contacts(world, collider, ::mover_filter(collider));
+
+  if (!initial.empty()) {
+    MoveResult result;
+    result.status = MoveStatus::UNRESOLVED_OVERLAP;
+    result.requestedDisplacement = request.displacement;
+    result.requestedElevationDisplacement = request.elevationDisplacement;
+    result.contacts = initial;
+    refreshGrounded(collider);
+
+    return result;
+  }
+
+  bool vertical_blocked = requested < 0.0;
+
+  if (target > start) {
+    const float permitted = ::constrain_elevation(world, collider, *body, target);
+    vertical_blocked = vertical_blocked || permitted != target;
+    body->setElevation(permitted);
+  }
+
+  auto result = moveGround(collider, request);
+
+  if (target < start && result.status != MoveStatus::UNRESOLVED_OVERLAP) {
+    const float permitted = ::constrain_elevation(world, collider, *body, target);
+    vertical_blocked = vertical_blocked || permitted != target;
+    body->setElevation(permitted);
+  }
+
+  refreshGrounded(collider);
+  result.requestedElevationDisplacement = request.elevationDisplacement;
+  result.actualElevationDisplacement = body->getElevation() - start;
+
+  if (vertical_blocked && result.status == MoveStatus::COMPLETED) result.status = MoveStatus::BLOCKED;
+
+  return result;
+}
+
+MoveResult KinematicMover::moveGround(Collider &collider, const MoveRequest &request) {
   ::validate_collider(collider);
 
   if (!std::isfinite(request.displacement.x) || !std::isfinite(request.displacement.y)) {
@@ -290,7 +435,10 @@ RecoveryResult KinematicMover::recoverOverlap(Collider &collider) {
   RecoveryResult result;
   result.remainingOverlaps = ::penetrating_contacts(world, collider, filter);
 
-  if (result.remainingOverlaps.empty()) return result;
+  if (result.remainingOverlaps.empty()) {
+    refreshGrounded(collider);
+    return result;
+  }
 
   result.status = RecoveryStatus::UNRESOLVED;
   double distance_left = settings.maxRecoveryDistance;
@@ -325,6 +473,7 @@ RecoveryResult KinematicMover::recoverOverlap(Collider &collider) {
   }
 
   result.correction = ::position_delta(collider, start);
+  refreshGrounded(collider);
 
   return result;
 }

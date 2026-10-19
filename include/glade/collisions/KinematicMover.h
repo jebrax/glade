@@ -17,13 +17,17 @@ enum class MoveStatus {
 
 struct MoveRequest {
   Glade::Vector3f displacement;
+  // Physical elevation delta, independent of transform/render Z.
+  float elevationDisplacement = 0.0f;
 };
 
 struct MoveResult {
   MoveStatus status = MoveStatus::COMPLETED;
   Glade::Vector3f requestedDisplacement;
   Glade::Vector3f actualDisplacement;
-  // Snapshots of contacts encountered along the path, not final support state.
+  float requestedElevationDisplacement = 0.0f;
+  float actualElevationDisplacement = 0.0f;
+  // X/Y contact snapshots, not final support state or vertical contacts.
   std::vector<OverlapResult> contacts;
 };
 
@@ -51,19 +55,27 @@ struct KinematicMoverSettings {
   float maxSlideAngleDegrees = 90.0f;
 };
 
-// Synchronous X/Y movement. World and registered colliders must remain valid.
+// Synchronous movement. World and registered colliders must remain valid.
+// Elevated owners rise first, move in X/Y, then descend at the resolved X/Y.
+// This is staged character movement, not a simultaneous 3D swept-volume solver.
 // Requires an enabled, non-sensor KINEMATIC collider registered in this world.
 class KinematicMover {
 public:
   explicit KinematicMover(CollisionWorld &world_, const KinematicMoverSettings &settings_ = {});
 
-  // Never automatically recovers initial penetration. Z displacement is ignored.
+  // Never automatically recovers initial penetration. Render Z is ignored.
+  // Elevation requests require an ElevatedObject owner. Grounded is refreshed
+  // even for zero displacement; the reference floor is currently elevation zero.
   MoveResult move(Collider &collider, const MoveRequest &request);
 
   // Bounded best-effort recovery; an unresolved result can include partial correction.
   RecoveryResult recoverOverlap(Collider &collider);
 
 private:
+  MoveResult moveGround(Collider &collider, const MoveRequest &request);
+
+  void refreshGrounded(Collider &collider);
+
   CollisionWorld &world;
   KinematicMoverSettings settings;
   double maxSlideNormalRatioSquared;
