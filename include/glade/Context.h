@@ -2,6 +2,10 @@
 
 #include <queue>
 #include <cassert>
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <stdexcept>
 
 #include "render/GladeRenderer.h"
 #include "State.h"
@@ -18,6 +22,9 @@
 
 class Context {
 public:
+  static constexpr double FIXED_STEP_SECONDS = 1.0 / 60.0;
+  static constexpr int MAX_FIXED_STEPS = 6;
+
   Timer physicsTimer;
   Glade::Renderer *renderer;
 
@@ -33,6 +40,9 @@ private:
   State *currentState, *requestedState;
   bool stopRequested, clearRequested, suspend;
   VirtualController *controller;
+  using UpdateClock = std::chrono::steady_clock;
+  UpdateClock::time_point lastUpdateTime = UpdateClock::now();
+  double fixedAccumulator = 0.0;
   std::queue<std::pair<GladeObject *, bool>> objectsToAdd;
   std::queue<GladeObject *> objectsToRemove;
 
@@ -62,10 +72,31 @@ public:
   CollisionWorld *getCollisionWorld() { return &collisionWorld; }
   AiContainer *getAiContainer(void) { return &aiContainer; }
 
-  /**
-   * Should be called only from a rendering thread
-   */
-  void processRequests(void) {
+  // Discard elapsed simulation time after a pause. Does not alter state-owned input.
+  void resetSimulationTiming() {
+    lastUpdateTime = UpdateClock::now();
+    fixedAccumulator = 0.0;
+  }
+
+  /** Should be called only from a rendering thread. Uses a monotonic clock. */
+  void processRequests() {
+    const auto now = UpdateClock::now();
+    const double elapsed_seconds = std::chrono::duration<double>(now - lastUpdateTime).count();
+    lastUpdateTime = now;
+    processFrame(elapsed_seconds);
+  }
+
+  // Hosts with their own clock can supply elapsed seconds; do not call both overloads per frame.
+  void processRequests(double elapsed_seconds) {
+    if (!std::isfinite(elapsed_seconds))
+      throw std::invalid_argument("Context elapsed seconds must be finite");
+
+    lastUpdateTime = UpdateClock::now();
+    processFrame(elapsed_seconds);
+  }
+
+private:
+  void processFrame(double elapsed_seconds) {
     if (stopRequested) {
       ::log("Context stop requested");
       stopRequested = false;
@@ -77,12 +108,15 @@ public:
         currentState = nullptr;
       }
 
+      resetSimulationTiming();
+
       return;
     }
 
     if (requestedState != nullptr) {
       ::log("State switch requested");
       switchState();
+      resetSimulationTiming();
 
       return;
     }
@@ -116,7 +150,20 @@ public:
     }
 
     if (getCurrentState() != NULL) {
+      // Registration and per-frame rules run once, before any catch-up steps.
       getCurrentState()->applyRules(*this);
+      fixedAccumulator += std::max(elapsed_seconds, 0.0);
+      // Ignore only floating-point rounding at an exact step boundary.
+      const double whole_steps = std::floor((fixedAccumulator + 1.0e-12) / FIXED_STEP_SECONDS);
+      fixedAccumulator = std::max(0.0, fixedAccumulator - whole_steps * FIXED_STEP_SECONDS);
+      const int steps = static_cast<int>(std::min(whole_steps, double(MAX_FIXED_STEPS)));
+
+      // Excess whole steps are discarded. Transitions requested by a hook take effect
+      // on the next processRequests call; do not keep simulating the outgoing state.
+      for (int step = 0; step < steps; ++step) {
+        if (stopRequested || requestedState != nullptr || clearRequested) break;
+        getCurrentState()->fixedUpdate(*this, static_cast<float>(FIXED_STEP_SECONDS));
+      }
 
       if (enableCollisionDetector)
         getCollisionDetector()->detectAndResolveCollisions(physicsTimer.getDeltaTime());
@@ -125,6 +172,7 @@ public:
     }
   }
 
+public:
   Glade::Renderer *getRenderer(void) { return renderer; }
   void clear(void) { clearRequested = true; }
   void setController(VirtualController &controller_) { this->controller = &controller_; }
