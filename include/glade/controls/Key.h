@@ -28,6 +28,7 @@ enum Key {
   GLADE_KEY_3,
   GLADE_KEY_4,
   GLADE_KEY_5,
+  GLADE_KEY_0,
 };
 
 }
