@@ -98,7 +98,7 @@ public:
     context.add(&object);
   }
 
-  void applyRules(Context &context) override {
+  void update(Context &context) override {
     ++counts.frames;
     if (counts.stopOnFrame) context.requestStop();
   }
@@ -232,22 +232,22 @@ void check_resume() {
   ::require(f.counts.steps == 1, "Resumed state did not receive fixed updates");
 }
 
-class LegacyState final : public State {
+class FrameOnlyState final : public State {
 public:
   int frames = 0;
-  void applyRules(Context &) override { ++frames; }
+  void update(Context &) override { ++frames; }
 };
 
-void check_legacy_state() {
+void check_frame_only_state() {
   Fixture f;
   // Complete the initial registration pass before replacing the owning state.
   f.context.processRequests(0.0);
-  auto *legacy = new LegacyState;
+  auto *legacy = new FrameOnlyState;
   f.context.requestStateChange(legacy);
   f.context.processRequests(0.0);
   f.context.processRequests(1.0);
   f.context.processRequests(0.0);
-  ::require(legacy->frames == 2, "Legacy per-frame hook changed cadence");
+  ::require(legacy->frames == 2, "Frame-only hook changed cadence");
 }
 
 void check_stop_requests() {
@@ -292,10 +292,10 @@ int main() {
     ::check_timing();
     ::check_lifecycle();
     ::check_resume();
-    ::check_legacy_state();
+    ::check_frame_only_state();
     ::check_stop_requests();
     ::require(::glGetError() == GL_NO_ERROR, "Context tests produced an OpenGL error");
-    std::puts("Context fixed update: PASS (cadence, registration, reset, transitions, resume, legacy, clear, stop)");
+    std::puts("Context fixed update: PASS (cadence, registration, reset, transitions, resume, frame-only, clear, stop)");
   } catch (const std::exception &error) {
     std::fprintf(::stderr, "Context fixed update: FAIL: %s\n", error.what());
     result = 1;

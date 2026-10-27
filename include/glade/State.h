@@ -11,15 +11,15 @@ public:
   virtual void shutdown(Context &context) {}
   virtual void suspend(Context &context) { suspended = true; }
   virtual void wakeup(Context &context) { suspended = false; }
-  // Per-frame rules; existing applications can continue overriding this hook.
-  virtual void applyRules(Context &context) {}
+  // Per-frame rules, called once per normal Context update.
+  virtual void update(Context &context) {}
   // Fixed simulation interval in seconds. Context may call this zero or more times per frame.
   virtual void fixedUpdate(Context &context, float seconds) {}
   virtual bool isSuspended() { return suspended; }
 
   virtual GladeObject *createEntityByTypeId(unsigned int type,
-                                            const unsigned int *force_id = nullptr,
-                                            bool replicate = true) {
+                                          const unsigned int *force_id = nullptr,
+                                          bool replicate = true) {
     return nullptr;
   }
 
